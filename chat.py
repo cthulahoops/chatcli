@@ -56,7 +56,7 @@ def log():
         if 'request' not in exchange:
             continue
         trimmed_message = exchange['request'][-1]['content'].split('\n', 1)[0]
-        click.echo(f"{offset}: {trimmed_message}")
+        click.echo(f"{offset: 3d}: {trimmed_message}")
 
 def conversation(request_messages):
     while True:
