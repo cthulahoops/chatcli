@@ -34,7 +34,7 @@ def chat(quick, continue_conversation, offset):
 
 @cli.command()
 @click.option('-n', '--offset', default=1, help="Message offset")
-@click.option('-l/-s', '--long/--short', help="Show full conversation")
+@click.option('-l/-s', '--long/--short', help="Show full conversation or just the most recent message.")
 def show(offset, long):
     exchange = get_logged_exchange(offset)
     if long:
@@ -52,7 +52,7 @@ def show(offset, long):
 
 @cli.command()
 def log():
-    for offset, exchange in reversed(list(enumerate(reversed(list(conversation_log())), start=1))):
+    for offset, exchange in reversed(list(enumerate(reversed(conversation_log()), start=1))):
         if 'request' not in exchange:
             continue
         trimmed_message = exchange['request'][-1]['content'].split('\n', 1)[0]
@@ -96,17 +96,15 @@ def cost(tokens):
 
 def conversation_log():
     with open(CHAT_LOG, encoding='utf-8') as fh:
-        for line in fh:
-            yield json.loads(line)
+        return [json.loads(line) for line in fh]
 
 def get_logged_exchange(offset):
-    with open(CHAT_LOG, encoding='utf-8') as fh:
-        return json.loads(fh.readlines()[-offset])
+    return conversation_log()[-offset]
 
 @cli.command()
 def usage():
-    with open(CHAT_LOG, encoding="utf-8") as fh:
-        click.echo(f'${cost(sum(json.loads(line)["response"]["usage"]["total_tokens"] for line in fh)):.2f}')
+    total_cost = cost(sum(line["response"]["usage"]["total_tokens"] for line in conversation_log()))
+    click.echo(f'${total_cost:.2f}')
 
 if __name__ == '__main__':
     cli()
