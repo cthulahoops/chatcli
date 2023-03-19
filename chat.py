@@ -24,7 +24,8 @@ def cli():
 @click.option('-c', '--continue_conversation', '--continue', is_flag=True, help="Continue previous conversation.")
 @click.option('-n', '--offset', help="Continue conversation from a given message offset.")
 @click.option('-p', '--personality', default='concise', type=click.Choice(list(PERSONALITIES), case_sensitive=False))
-def chat(quick, continue_conversation, offset, personality):
+@click.option('-f', '--file', help="Add a file to the conversation for context.")
+def chat(quick, continue_conversation, offset, personality, file):
     if continue_conversation:
         offset = 1
     if offset:
@@ -35,6 +36,10 @@ def chat(quick, continue_conversation, offset, personality):
         request_messages = [
             {"role": "system", "content": PERSONALITIES[personality]},
         ]
+
+    if file:
+        file_contents = open(file, encoding="utf-8").read()
+        request_messages.append({"role": "user", "content": f"The file {file} contains:\n```\n{file_contents}```"})
 
     if quick:
         question(request_messages, multiline=False)
