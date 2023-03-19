@@ -9,6 +9,12 @@ from prompt_toolkit import prompt
 ENGINE = "gpt-3.5-turbo"
 CHAT_LOG = "chatlog.log"
 
+PERSONALITIES = {
+    "concise": "You are helpful, expert linux user and programmer. You give concise answers, providing code where possible.",
+    "code": "You only answer questions with a single example code block only, and no other explanations.",
+    "italiano": "You answer all questions in italian.",
+}
+
 @click.group(cls=DefaultGroup, default='chat', default_if_no_args=True)
 def cli():
     pass
@@ -16,15 +22,18 @@ def cli():
 @cli.command(help="Ask a question of ChatGPT.")
 @click.option('-q', '--quick', is_flag=True, help="Just handle a one single-line question.")
 @click.option('-c', '--continue_conversation', '--continue', is_flag=True, help="Continue previous conversation.")
-@click.option('-n', '--offset', default=1, help="Continue conversation from a given message offset.")
-def chat(quick, continue_conversation, offset):
-    if continue_conversation or offset:
+@click.option('-n', '--offset', help="Continue conversation from a given message offset.")
+@click.option('-p', '--personality', default='concise', type=click.Choice(list(PERSONALITIES), case_sensitive=False))
+def chat(quick, continue_conversation, offset, personality):
+    if continue_conversation:
+        offset = 1
+    if offset:
         exchange = get_logged_exchange(offset)
         request_messages = exchange['request']
         request_messages.append(exchange['response']['choices'][0]['message'])
     else:
         request_messages = [
-            {"role": "system", "content": "You are helpful, expert linux user and programmer. You give concise answers, providing code where possible."},
+            {"role": "system", "content": PERSONALITIES[personality]},
         ]
 
     if quick:
