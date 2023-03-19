@@ -3,7 +3,6 @@ import sys
 import click
 from click_default_group import DefaultGroup
 import openai
-import colorama
 from prompt_toolkit import prompt
 
 ENGINE = "gpt-3.5-turbo"
