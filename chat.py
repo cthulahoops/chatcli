@@ -50,6 +50,13 @@ def show(offset, long):
             click.echo(click.style(prefix + message["content"], fg=color))
     click.echo(exchange['response']['choices'][0]['message']["content"])
 
+@cli.command()
+def log():
+    for offset, exchange in reversed(list(enumerate(reversed(list(conversation_log())), start=1))):
+        if 'request' not in exchange:
+            continue
+        trimmed_message = exchange['request'][-1]['content'].split('\n', 1)[0]
+        click.echo(f"{offset}: {trimmed_message}")
 
 def conversation(request_messages):
     while True:
@@ -86,6 +93,11 @@ def question(request_messages, multiline=True):
 
 def cost(tokens):
     return tokens / 1000 * 0.002
+
+def conversation_log():
+    with open(CHAT_LOG, encoding='utf-8') as fh:
+        for line in fh:
+            yield json.loads(line)
 
 def get_logged_exchange(offset):
     with open(CHAT_LOG, encoding='utf-8') as fh:
