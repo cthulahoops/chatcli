@@ -72,9 +72,12 @@ def log():
         trimmed_message = exchange['request'][-1]['content'].split('\n', 1)[0]
         click.echo(f"{click.style(f'{offset: 3d}:', fg='blue')} {trimmed_message}")
 
-def conversation(request_messages):
+def conversation(request_messages, multiline=True):
+    if multiline:
+        click.echo("(Finish input with <Alt-Enter> or <Esc><Enter>)")
+
     while True:
-        response_message = question(request_messages)
+        response_message = question(request_messages, multiline)
         if not response_message:
             break
         request_messages.append(response_message)
