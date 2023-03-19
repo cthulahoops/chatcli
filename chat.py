@@ -38,7 +38,8 @@ def chat(quick, continue_conversation, offset, personality, file):
         ]
 
     if file:
-        file_contents = open(file, encoding="utf-8").read()
+        with open(file, encoding="utf-8") as fh:
+            file_contents = fh.read()
         request_messages.append({"role": "user", "content": f"The file {file} contains:\n```\n{file_contents}```"})
 
     if quick:
