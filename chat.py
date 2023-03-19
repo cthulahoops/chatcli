@@ -101,10 +101,11 @@ def conversation_log():
 def get_logged_exchange(offset):
     return conversation_log()[-offset]
 
-@cli.command()
+@cli.command(help="Display number of tokens and token cost.")
 def usage():
-    total_cost = cost(sum(line["response"]["usage"]["total_tokens"] for line in conversation_log()))
-    click.echo(f'${total_cost:.2f}')
+    tokens = sum(line["response"]["usage"]["total_tokens"] for line in conversation_log())
+    click.echo(f'Tokens: {tokens}')
+    click.echo(f'Cost: ${cost(tokens):.2f}')
 
 if __name__ == '__main__':
     cli()
