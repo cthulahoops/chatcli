@@ -16,9 +16,9 @@ def cli():
 @cli.command(help="Ask a question of ChatGPT.")
 @click.option('-q', '--quick', is_flag=True, help="Just handle a one single-line question.")
 @click.option('-c', '--continue_conversation', '--continue', is_flag=True, help="Continue previous conversation.")
-@click.option('-n', '--offset', default=1, help="Message offset")
+@click.option('-n', '--offset', default=1, help="Continue conversation from a given message offset.")
 def chat(quick, continue_conversation, offset):
-    if continue_conversation:
+    if continue_conversation or offset:
         exchange = get_logged_exchange(offset)
         request_messages = exchange['request']
         request_messages.append(exchange['response']['choices'][0]['message'])
