@@ -10,7 +10,7 @@ ENGINE = "gpt-3.5-turbo"
 CHAT_LOG = "chatlog.log"
 
 PERSONALITIES = {
-    "concise": "You are helpful, expert linux user and programmer. You give concise answers, providing code where possible.",
+    "concise": "You are a helpful, expert linux user and programmer. You give concise answers, providing code where possible.",
     "code": "You only answer questions with a single example code block only, and no other explanations.",
     "italiano": "You answer all questions in italian.",
 }
