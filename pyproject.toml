@@ -7,7 +7,6 @@ authors = ["Adam Kelly <adam@cthulahoops.org>"]
 [tool.poetry.dependencies]
 python = "^3.10"
 openai = "^0.27.2"
-colorama = "^0.4.6"
 prompt-toolkit = "^3.0.38"
 markdown = "^3.4.1"
 click = "^8.1.3"

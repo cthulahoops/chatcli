@@ -3,6 +3,7 @@ import sys
 import click
 from click_default_group import DefaultGroup
 import openai
+import colorama
 from prompt_toolkit import prompt
 
 ENGINE = "gpt-3.5-turbo"
@@ -33,9 +34,21 @@ def chat(quick, continue_conversation, offset):
 
 @cli.command()
 @click.option('-n', '--offset', default=1, help="Message offset")
-def show(offset):
+@click.option('-l/-s', '--long/--short', help="Show full conversation")
+def show(offset, long):
     exchange = get_logged_exchange(offset)
-    print(exchange['response']['choices'][0]['message']["content"])
+    if long:
+        for message in exchange['request']:
+            prefix = ""
+            if message['role'] == 'user':
+                color = (186, 85, 211)
+                prefix = ">> "
+            elif message['role'] == 'system':
+                color = (100, 150, 200)
+            else:
+                color = None
+            click.echo(click.style(prefix + message["content"], fg=color))
+    click.echo(exchange['response']['choices'][0]['message']["content"])
 
 
 def conversation(request_messages):
@@ -53,7 +66,7 @@ def question(request_messages, multiline=True):
     message = message.strip()
     if not message:
         return None
-    print("....")
+    click.echo("....")
     request_messages.append({"role": "user", "content": message})
 
     completion = openai.ChatCompletion.create(
@@ -66,9 +79,9 @@ def question(request_messages, multiline=True):
             'request': request_messages,
             'response': completion}) + "\n")
 
-    print(f"Usage: ${cost(completion['usage']['total_tokens']):.3f}")
+    click.echo(f"Usage: ${cost(completion['usage']['total_tokens']):.3f}")
     response_message = completion["choices"][0]["message"]
-    print(response_message["content"])
+    click.echo(response_message["content"])
     return response_message
 
 def cost(tokens):
