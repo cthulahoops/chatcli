@@ -13,9 +13,9 @@ CHAT_LOG = "chatlog.log"
 def cli():
     pass
 
-@cli.command()
+@cli.command(help="Ask a question of ChatGPT.")
 @click.option('-q', '--quick', is_flag=True, help="Just handle a one single-line question.")
-@click.option('-c', '--continue_conversation', is_flag=True, help="Continue previous conversation.")
+@click.option('-c', '--continue_conversation', '--continue', is_flag=True, help="Continue previous conversation.")
 @click.option('-n', '--offset', default=1, help="Message offset")
 def chat(quick, continue_conversation, offset):
     if continue_conversation:
@@ -32,7 +32,7 @@ def chat(quick, continue_conversation, offset):
     else:
         conversation(request_messages)
 
-@cli.command()
+@cli.command(help="Show a conversation.")
 @click.option('-n', '--offset', default=1, help="Message offset")
 @click.option('-l/-s', '--long/--short', help="Show full conversation or just the most recent message.")
 def show(offset, long):
@@ -50,7 +50,7 @@ def show(offset, long):
             click.echo(click.style(prefix + message["content"], fg=color))
     click.echo(exchange['response']['choices'][0]['message']["content"])
 
-@cli.command()
+@cli.command(help="List all the questions we've asked")
 def log():
     for offset, exchange in reversed(list(enumerate(reversed(conversation_log()), start=1))):
         if 'request' not in exchange:
