@@ -24,7 +24,7 @@ pip install -r requirements.txt
 
 ```
 python chat.py --quick -f chat.py -p code
-Generate a README.md for this project.
+>> Generate a README.md for this project.
 ```
 
 ## Usage
