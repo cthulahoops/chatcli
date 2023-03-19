@@ -18,6 +18,15 @@ pip install -r requirements.txt
 
 3. Set your OpenAI API key in the environment variable `OPENAI_API_KEY`.
 
+## Demos
+
+### Generate a README for this project
+
+```
+python chat.py --quick -f chat.py -p code
+Generate a README.md for this project.
+```
+
 ## Usage
 
 ### Ask a question
