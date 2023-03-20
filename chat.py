@@ -23,9 +23,10 @@ def cli():
 @click.option('-c', '--continue_conversation', '--continue', is_flag=True, help="Continue previous conversation.")
 @click.option('-n', '--offset', help="Continue conversation from a given message offset.")
 @click.option('-p', '--personality', default='concise', type=click.Choice(list(PERSONALITIES), case_sensitive=False))
-@click.option('-f', '--file', help="Add a file to the conversation for context.")
-def chat(quick, continue_conversation, offset, personality, file):
-    if continue_conversation:
+@click.option('-f', '--file', type=click.Path(exists=True), multiple=True, help="Add a file to the conversation for context.")
+@click.option('-r', '--retry', is_flag=True, help="Retry previous question")
+def chat(quick, continue_conversation, offset, personality, file, retry):
+    if (continue_conversation or retry) and not offset:
         offset = 1
     if offset:
         exchange = get_logged_exchange(offset)
@@ -36,12 +37,17 @@ def chat(quick, continue_conversation, offset, personality, file):
             {"role": "system", "content": PERSONALITIES[personality]},
         ]
 
-    if file:
-        with open(file, encoding="utf-8") as fh:
+    for filename in file:
+        with open(filename, encoding="utf-8") as fh:
             file_contents = fh.read()
         request_messages.append({"role": "user", "content": f"The file {file} contains:\n```\n{file_contents}```"})
 
-    if quick:
+    if retry:
+        response = answer(request_messages[:-1])
+        if not quick:
+            request_messages.append(response)
+            conversation(request_messages)
+    elif quick:
         question(request_messages, multiline=False)
     else:
         conversation(request_messages)
@@ -92,7 +98,9 @@ def question(request_messages, multiline=True):
         return None
     click.echo("....")
     request_messages.append({"role": "user", "content": message})
+    return answer(request_messages)
 
+def answer(request_messages):
     completion = openai.ChatCompletion.create(
         model=ENGINE,
         messages = request_messages
