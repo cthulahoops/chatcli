@@ -61,9 +61,24 @@ def test_log(mocker):
         )
         result = runner.invoke(cli, ["log"], catch_exceptions=False)
         assert result.exit_code == 0
-        assert "What is your name?" in result.output
-        assert "What is your quest?" in result.output
+        assert "2: What is your name?" in result.output
+        assert "1: What is your quest?" in result.output
 
+def test_chat_log_search(mocker):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        mocker.patch("chat.prompt", return_value="What is your name?")
+        result = runner.invoke(
+            cli, ["chat", "--quick", "-p", "concise"], catch_exceptions=False
+        )
+        mocker.patch("chat.prompt", return_value="What is your quest?")
+        result = runner.invoke(
+            cli, ["chat", "--quick", "-c", "-p", "italiano"], catch_exceptions=False
+        )
+        result = runner.invoke(cli, ["log", "-s", "name"], catch_exceptions=False)
+        assert result.exit_code == 0
+        assert "2: What is your name?" in result.output
+        assert "1: What is your quest?" not in result.output
 
 def test_usage(mocker):
     mocker.patch("chat.prompt", return_value="What is your name?")

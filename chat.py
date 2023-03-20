@@ -71,11 +71,17 @@ def show(offset, long):
     click.echo(exchange['response']['choices'][0]['message']["content"])
 
 @cli.command(help="List all the questions we've asked")
-def log():
+@click.option('-s', '--search', help="Filter by search term")
+def log(search):
     for offset, exchange in reversed(list(enumerate(reversed(conversation_log()), start=1))):
+        # TODO This only exists because my log file still contains entries from earlier versions.
         if 'request' not in exchange:
             continue
-        trimmed_message = exchange['request'][-1]['content'].split('\n', 1)[0]
+        question = exchange['request'][-1]['content']
+        if search and search not in question:
+            continue
+
+        trimmed_message = question.split('\n', 1)[0]
         click.echo(f"{click.style(f'{offset: 3d}:', fg='blue')} {trimmed_message}")
 
 def conversation(request_messages, multiline=True):
