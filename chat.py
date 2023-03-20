@@ -21,7 +21,7 @@ def cli():
 @cli.command(help="Ask a question of ChatGPT.")
 @click.option('-q', '--quick', is_flag=True, help="Just handle a one single-line question.")
 @click.option('-c', '--continue_conversation', '--continue', is_flag=True, help="Continue previous conversation.")
-@click.option('-n', '--offset', help="Continue conversation from a given message offset.")
+@click.option('-n', '--offset', type=int, help="Continue conversation from a given message offset.")
 @click.option('-p', '--personality', default='concise', type=click.Choice(list(PERSONALITIES), case_sensitive=False))
 @click.option('-f', '--file', type=click.Path(exists=True), multiple=True, help="Add a file to the conversation for context.")
 @click.option('-r', '--retry', is_flag=True, help="Retry previous question")
