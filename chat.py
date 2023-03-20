@@ -1,12 +1,15 @@
 import json
-import sys
+from collections import defaultdict
 import click
 from click_default_group import DefaultGroup
 import openai
 from prompt_toolkit import prompt
+import tiktoken
 
 ENGINE = "gpt-3.5-turbo"
 CHAT_LOG = "chatlog.log"
+
+encoding = tiktoken.encoding_for_model(ENGINE)
 
 PERSONALITIES = {
     "concise": "You are a helpful, expert linux user and programmer. You give concise answers, providing code where possible.",
@@ -107,19 +110,47 @@ def question(request_messages, multiline=True):
     return answer(request_messages)
 
 def answer(request_messages):
-    completion = openai.ChatCompletion.create(
-        model=ENGINE,
-        messages = request_messages
-    )
+    completion = {}
+    for chunk in openai.ChatCompletion.create(
+            model=ENGINE,
+            messages = request_messages,
+            stream=True):
+
+        if not completion:
+            for key, value in chunk.items():
+                completion[key] = value
+            completion["choices"] = [{"message": {}} for choice in chunk["choices"]]
+
+        for choice in chunk["choices"]:
+            if choice.get("delta"):
+                for key, value in choice["delta"].items():
+                    message = completion["choices"][choice["index"]]["message"]
+                    if key not in message:
+                        message[key] = ""
+                    message[key] += value
+
+        content_chunk = chunk["choices"][0]["delta"].get("content")
+        if content_chunk:
+            click.echo(content_chunk, nl=False)
+
+    request_text = ' '.join("role: " + x['role'] + " content: " + x['content'] + "\n" for x in request_messages)
+    request_tokens = len(encoding.encode(request_text))
+    completion_tokens = len(encoding.encode(completion["choices"][0]["message"]["content"]))
+    completion["usage"] = {
+            "request_tokens": request_tokens,
+             "completion_tokens": completion_tokens,
+             "total_tokens": request_tokens + completion_tokens}
+
+    click.echo()
 
     with open(CHAT_LOG, "a", buffering=1, encoding='utf-8') as fh:
         fh.write(json.dumps({
             'request': request_messages,
             'response': completion}) + "\n")
 
-    click.echo(f"Usage: ${cost(completion['usage']['total_tokens']):.3f}")
+#   click.echo(f"Usage: ${cost(completion['usage']['total_tokens']):.3f}")
+#    click.echo(response_message["content"])
     response_message = completion["choices"][0]["message"]
-    click.echo(response_message["content"])
     return response_message
 
 def cost(tokens):

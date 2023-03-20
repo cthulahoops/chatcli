@@ -6,10 +6,17 @@ from chat import cli
 
 @pytest.fixture(autouse=True)
 def fake_assistant(mocker):
-    def advanced_ai(model, messages):
+    def streaming_ai(model, message):
+        yield {"model": model, "choices": [{"delta": {"role": "assistant"}, "index": 0}]}
+        for word in message.split():
+            yield {"choices": [{"delta": {"content": " " + word.upper()}, "index": 0}]}
+
+    def advanced_ai(model, messages, stream=False):
+        if stream:
+            return (x for x in streaming_ai(model, messages[-1]["content"]))
         return {
             "choices": [{"message": {"role": "assistant", "content": messages[-1]["content"].upper()}}],
-            "usage": {"total_tokens": 5000},
+            "usage": {"total_tokens": 41},
         }
     mocker.patch("chat.openai.ChatCompletion.create", advanced_ai)
 
@@ -89,8 +96,8 @@ def test_usage(mocker):
         result = runner.invoke(cli, ["chat", "--quick"], catch_exceptions=False)
         result = runner.invoke(cli, ["usage"], catch_exceptions=False)
         assert result.exit_code == 0
-        assert "Tokens: 10000" in result.output
-        assert "Cost: $0.02" in result.output
+        assert "Tokens: 82" in result.output
+        assert "Cost: $0.00" in result.output
 
 
 def test_chat_retry(mocker):
