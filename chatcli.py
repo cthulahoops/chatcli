@@ -26,7 +26,8 @@ def cli():
 @click.option('-p', '--personality', default='concise', type=click.Choice(list(PERSONALITIES), case_sensitive=False))
 @click.option('-f', '--file', type=click.Path(exists=True), multiple=True, help="Add a file to the conversation for context.")
 @click.option('-r', '--retry', is_flag=True, help="Retry previous question")
-def chat(quick, continue_conversation, offset, personality, file, retry):
+@click.option('--stream/--sync', default=True, help="Stream or sync mode.")
+def chat(quick, continue_conversation, offset, personality, file, retry, stream):
     if (continue_conversation or retry) and not offset:
         offset = 1
     if offset:
@@ -44,14 +45,14 @@ def chat(quick, continue_conversation, offset, personality, file, retry):
         request_messages.append({"role": "user", "content": f"The file {file} contains:\n```\n{file_contents}```"})
 
     if retry:
-        response = answer(request_messages[:-1])
+        response = answer(request_messages[:-1], stream)
         if not quick:
             request_messages.append(response)
-            conversation(request_messages)
+            conversation(request_messages, stream)
     elif quick:
-        question(request_messages, multiline=False)
+        question(request_messages, stream, multiline=False)
     else:
-        conversation(request_messages)
+        conversation(request_messages, stream)
 
 @cli.command(help="Show a conversation.")
 @click.option('-n', '--offset', default=1, help="Message offset")
@@ -85,17 +86,17 @@ def log(search):
         trimmed_message = question.split('\n', 1)[0]
         click.echo(f"{click.style(f'{offset: 3d}:', fg='blue')} {trimmed_message}")
 
-def conversation(request_messages, multiline=True):
+def conversation(request_messages, stream=True, multiline=True):
     if multiline:
         click.echo("(Finish input with <Alt-Enter> or <Esc><Enter>)")
 
     while True:
-        response_message = question(request_messages, multiline)
+        response_message = question(request_messages, stream, multiline)
         if not response_message:
             break
         request_messages.append(response_message)
 
-def question(request_messages, multiline=True):
+def question(request_messages, stream=True, multiline=True):
     try:
         message = prompt(">> ", multiline=multiline, prompt_continuation=".. ")
     except EOFError:
@@ -105,9 +106,17 @@ def question(request_messages, multiline=True):
         return None
     click.echo("....")
     request_messages.append({"role": "user", "content": message})
-    return answer(request_messages)
+    return answer(request_messages, stream)
 
-def answer(request_messages):
+
+def synchroneous_request(request_messages):
+    completion = openai.ChatCompletion.create(
+        model=ENGINE,
+        messages=request_messages)
+    click.echo(completion["choices"][0]["message"]["content"])
+    return completion
+
+def stream_request(request_messages):
     completion = {}
     for chunk in openai.ChatCompletion.create(
             model=ENGINE,
@@ -141,6 +150,13 @@ def answer(request_messages):
              "total_tokens": request_tokens + completion_tokens}
 
     click.echo()
+    return completion
+
+def answer(request_messages, stream=True):
+    if stream:
+        completion = stream_request(request_messages)
+    else:
+        completion = synchroneous_request(request_messages)
 
     with open(CHAT_LOG, "a", buffering=1, encoding='utf-8') as fh:
         fh.write(json.dumps({
