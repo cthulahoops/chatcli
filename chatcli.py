@@ -9,8 +9,6 @@ import tiktoken
 ENGINE = "gpt-3.5-turbo"
 CHAT_LOG = "chatlog.log"
 
-encoding = tiktoken.encoding_for_model(ENGINE)
-
 PERSONALITIES = {
     "concise": "You are a helpful, expert linux user and programmer. You give concise answers, providing code where possible.",
     "code": "You only answer questions with a single example code block only, and no other explanations.",
@@ -133,6 +131,7 @@ def answer(request_messages):
         if content_chunk:
             click.echo(content_chunk, nl=False)
 
+    encoding = tiktoken.encoding_for_model(ENGINE)
     request_text = ' '.join("role: " + x['role'] + " content: " + x['content'] + "\n" for x in request_messages)
     request_tokens = len(encoding.encode(request_text))
     completion_tokens = len(encoding.encode(completion["choices"][0]["message"]["content"]))
