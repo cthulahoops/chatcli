@@ -1,5 +1,5 @@
 import json
-from collections import defaultdict
+import os.path
 import click
 from click_default_group import DefaultGroup
 import openai
@@ -9,7 +9,7 @@ import tiktoken
 ENGINE = "gpt-3.5-turbo"
 CHAT_LOG = "chatlog.log"
 
-PERSONALITIES = {
+INITIAL_PERSONALITIES = {
     "concise": "You are a helpful, expert linux user and programmer. You give concise answers, providing code where possible.",
     "code": "You only answer questions with a single example code block only, and no other explanations.",
     "italiano": "You answer all questions in italian.",
@@ -23,7 +23,7 @@ def cli():
 @click.option('-q', '--quick', is_flag=True, help="Just handle a one single-line question.")
 @click.option('-c', '--continue_conversation', '--continue', is_flag=True, help="Continue previous conversation.")
 @click.option('-n', '--offset', type=int, help="Continue conversation from a given message offset.")
-@click.option('-p', '--personality', default='concise', type=click.Choice(list(PERSONALITIES), case_sensitive=False))
+@click.option('-p', '--personality', default='concise')
 @click.option('-f', '--file', type=click.Path(exists=True), multiple=True, help="Add a file to the conversation for context.")
 @click.option('-r', '--retry', is_flag=True, help="Retry previous question")
 @click.option('--stream/--sync', default=True, help="Stream or sync mode.")
@@ -33,11 +33,11 @@ def chat(quick, continue_conversation, offset, personality, file, retry, stream)
     if offset:
         exchange = get_logged_exchange(offset)
         request_messages = exchange['request']
-        request_messages.append(exchange['response']['choices'][0]['message'])
-    else:
-        request_messages = [
-            {"role": "system", "content": PERSONALITIES[personality]},
-        ]
+        if exchange['response']:
+            request_messages.append(exchange['response']['choices'][0]['message'])
+    elif personality:
+        exchange = get_tagged_exchange("^" + personality)
+        request_messages = exchange["request"]
 
     for filename in file:
         with open(filename, encoding="utf-8") as fh:
@@ -53,6 +53,28 @@ def chat(quick, continue_conversation, offset, personality, file, retry, stream)
         question(request_messages, stream, multiline=False)
     else:
         conversation(request_messages, stream)
+
+@cli.command(help="Add new personality.")
+@click.argument('name')
+def add(name):
+    description = prompt("Description: ")
+    exchange = {'request': [{"role": "system", "content": description}], 'response': None, 'tags': ["^" + name]}
+    write_log(exchange)
+
+
+@cli.command(help="List tags.")
+def tags():
+    for exchange in conversation_log():
+        for tag in exchange.get("tags", []):
+            click.echo(tag)
+
+@cli.command(help="Add tags to a conversation.")
+@click.argument('tags', nargs=-1)
+def tag(tags):
+    exchange = get_logged_exchange(1)
+    exchange.setdefault('tags', []).extend(tags)
+    write_log(exchange)
+
 
 @cli.command(help="Show a conversation.")
 @click.option('-n', '--offset', default=1, help="Message offset")
@@ -83,8 +105,9 @@ def log(search):
         if search and search not in question:
             continue
 
-        trimmed_message = question.split('\n', 1)[0]
-        click.echo(f"{click.style(f'{offset: 3d}:', fg='blue')} {trimmed_message}")
+        trimmed_message = question.split('\n', 1)[0][:80]
+        tags = click.style(f"{' '.join(exchange.get('tags', []))}", fg='green')
+        click.echo(f"{click.style(f'{offset: 3d}:', fg='blue')} {trimmed_message} {tags}")
 
 def conversation(request_messages, stream=True, multiline=True):
     if multiline:
@@ -158,10 +181,7 @@ def answer(request_messages, stream=True):
     else:
         completion = synchroneous_request(request_messages)
 
-    with open(CHAT_LOG, "a", buffering=1, encoding='utf-8') as fh:
-        fh.write(json.dumps({
-            'request': request_messages,
-            'response': completion}) + "\n")
+    write_log({'request': request_messages, 'response': completion})
 
 #   click.echo(f"Usage: ${cost(completion['usage']['total_tokens']):.3f}")
 #    click.echo(response_message["content"])
@@ -171,16 +191,34 @@ def answer(request_messages, stream=True):
 def cost(tokens):
     return tokens / 1000 * 0.002
 
+def write_log(message):
+    with open(CHAT_LOG, "a", buffering=1, encoding='utf-8') as fh:
+        fh.write(json.dumps(message) + "\n")
+
+
+def create_initial_log():
+    for key, value in INITIAL_PERSONALITIES.items():
+        write_log({"request": [{"role": "system", "content": value}], "response": {}, "tags": ["^" + key]})
+
 def conversation_log():
+    if not os.path.exists(CHAT_LOG):
+        create_initial_log()
+
     with open(CHAT_LOG, encoding='utf-8') as fh:
         return [json.loads(line) for line in fh]
 
 def get_logged_exchange(offset):
     return conversation_log()[-offset]
 
+def get_tagged_exchange(tag):
+    for exchange in reversed(conversation_log()):
+        if 'tags' in exchange and tag in exchange['tags']:
+            return exchange
+    raise click.ClickException(f"No exchange with tag {tag} found.")
+
 @cli.command(help="Display number of tokens and token cost.")
 def usage():
-    tokens = sum(line["response"]["usage"]["total_tokens"] for line in conversation_log())
+    tokens = sum(line["response"]["usage"]["total_tokens"] for line in conversation_log() if line["response"])
     click.echo(f'Tokens: {tokens}')
     click.echo(f'Cost: ${cost(tokens):.2f}')
 
