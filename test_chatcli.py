@@ -139,3 +139,14 @@ def test_tag_delete():
         result = runner.invoke(cli, ["log", "-l", "1"], catch_exceptions=False)
         assert result.exit_code == 0
         assert "test_tag" not in result.output
+
+def test_show_tag():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            cli, ["chat", "--quick", "-p", "concise"], input="What is your name?", catch_exceptions=False
+        )
+        result = runner.invoke(cli, ["tag", "test_tag"], catch_exceptions=False)
+        result = runner.invoke(cli, ["show-tag"], catch_exceptions=False)
+        assert result.exit_code == 0
+        assert "test_tag" in result.output

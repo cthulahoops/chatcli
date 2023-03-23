@@ -102,6 +102,13 @@ def untag(tags, search_options):
     exchange['tags'] = [t for t in exchange.get('tags', []) if t not in tags]
     write_log(exchange)
 
+@cli.command(help="Current tag")
+def show_tag():
+    exchange = get_logged_exchange(offset=0)
+    tags = exchange.get('tags', [])
+
+    if tags:
+        click.echo(tags[-1])
 
 @cli.command(help="Show a conversation.")
 @cli_search_options
