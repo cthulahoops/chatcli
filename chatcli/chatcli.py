@@ -60,15 +60,21 @@ def chat(quick, continue_conversation, personality, file, retry, stream, search_
             file_contents = fh.read()
         request_messages.append({"role": "user", "content": f"The file {file} contains:\n```\n{file_contents}```"})
 
+    tags = exchange.get('tags', [])
+    if tags and not tags[-1].startswith("^"):
+        tags_to_apply = [tags[-1]]
+    else:
+        tags_to_apply = []
+
     if retry:
-        response = answer(request_messages[:-1], stream)
+        response = answer(request_messages[:-1], stream=stream, tags=tags_to_apply)
         if not quick:
             request_messages.append(response)
-            conversation(request_messages, stream)
+            conversation(request_messages, stream=stream, tags=tags_to_apply)
     elif quick or not os.isatty(0):
-        question(request_messages, stream, multiline=False)
+        question(request_messages, stream=stream, tags=tags_to_apply, multiline=False)
     else:
-        conversation(request_messages, stream)
+        conversation(request_messages, stream=stream, tags=tags_to_apply)
 
 @cli.command(help="Add new personality.")
 @click.argument('name')
@@ -141,17 +147,17 @@ def log(limit, search_options):
         tags = click.style(f"{' '.join(exchange.get('tags', []))}", fg='green')
         click.echo(f"{click.style(f'{offset: 3d}:', fg='blue')} {trimmed_message} {tags}")
 
-def conversation(request_messages, stream=True, multiline=True):
+def conversation(request_messages, tags=tags, stream=True, multiline=True):
     if multiline:
         click.echo("(Finish input with <Alt-Enter> or <Esc><Enter>)")
 
     while True:
-        response_message = question(request_messages, stream, multiline)
+        response_message = question(request_messages, stream=stream, multiline=multiline, tags=tags)
         if not response_message:
             break
         request_messages.append(response_message)
 
-def question(request_messages, stream=True, multiline=True):
+def question(request_messages, tags=None, stream=True, multiline=True):
     if os.isatty(0):
         try:
             question = prompt(">> ", multiline=multiline, prompt_continuation=".. ")
@@ -164,7 +170,7 @@ def question(request_messages, stream=True, multiline=True):
     if not question:
         return None
     request_messages.append({"role": "user", "content": question})
-    return answer(request_messages, stream)
+    return answer(request_messages, stream=stream, tags=tags)
 
 
 def synchroneous_request(request_messages):
@@ -210,13 +216,13 @@ def stream_request(request_messages):
     click.echo()
     return completion
 
-def answer(request_messages, stream=True):
+def answer(request_messages, stream=True, tags=[]):
     if stream:
         completion = stream_request(request_messages)
     else:
         completion = synchroneous_request(request_messages)
 
-    write_log({'request': request_messages, 'response': completion})
+    write_log({'request': request_messages, 'response': completion, 'tags': tags})
 
 #   click.echo(f"Usage: ${cost(completion['usage']['total_tokens']):.3f}")
 #    click.echo(response_message["content"])

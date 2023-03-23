@@ -150,3 +150,15 @@ def test_show_tag():
         result = runner.invoke(cli, ["show-tag"], catch_exceptions=False)
         assert result.exit_code == 0
         assert "test_tag" in result.output
+
+def test_current_tag_follows_conversation():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            cli, ["chat", "--quick", "-p", "concise"], input="What is your name?", catch_exceptions=False
+        )
+        result = runner.invoke(cli, ["tag", "test_tag"], catch_exceptions=False)
+        result = runner.invoke(cli, ["chat", "--continue", "--quick"], input="What is your quest?", catch_exceptions=False)
+        result = runner.invoke(cli, ["show-tag"], catch_exceptions=False)
+        assert result.exit_code == 0
+        assert "test_tag" in result.output
