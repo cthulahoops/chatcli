@@ -23,22 +23,23 @@ def cli():
 @cli.command(help="Ask a question of ChatGPT.")
 @click.option('-q', '--quick', is_flag=True, help="Just handle a one single-line question.")
 @click.option('-c', '--continue_conversation', '--continue', is_flag=True, help="Continue previous conversation.")
-@click.option('-n', '--offset', type=int, help="Continue conversation from a given message offset.")
 @click.option('-p', '--personality', default='concise')
 @click.option('-f', '--file', type=click.Path(exists=True), multiple=True, help="Add a file to the conversation for context.")
 @click.option('-r', '--retry', is_flag=True, help="Retry previous question")
 @click.option('--stream/--sync', default=True, help="Stream or sync mode.")
-def chat(quick, continue_conversation, offset, personality, file, retry, stream):
-    if (continue_conversation or retry) and not offset:
-        offset = 1
-    if offset:
-        exchange = get_logged_exchange(offset)
-        request_messages = exchange['request']
-        if exchange['response']:
-            request_messages.append(exchange['response']['choices'][0]['message'])
-    elif personality:
-        exchange = get_tagged_exchange("^" + personality)
-        request_messages = exchange["request"]
+@click.option('-n', '--offset', type=int, help="Continue conversation from a given message offset.")
+@click.option('-s', '--search', help="Select by search term")
+@click.option('-t', '--tag', help="Select by tag")
+def chat(quick, continue_conversation, personality, file, retry, stream, **search_options):
+    if (continue_conversation or retry) and not search_options['offset']:
+        search_options["offset"] = 1
+    elif personality and not search_options['tag'] and not search_options['search']:
+        search_options["tag"] = "^" + personality
+
+    exchange = get_logged_exchange(**search_options)
+    request_messages = exchange['request']
+    if exchange['response']:
+        request_messages.append(exchange['response']['choices'][0]['message'])
 
     for filename in file:
         with open(filename, encoding="utf-8") as fh:
@@ -69,8 +70,10 @@ def tags():
         for tag in exchange.get("tags", []):
             click.echo(tag)
 
-@cli.command(help="Add tags to a conversation.")
-@click.option('-n', '--offset', type=int, help="Apply tags to a given message offset.")
+@cli.command(help="Add tags to an exchange.")
+@click.option('-n', '--offset', type=int, help="Message offset")
+@click.option('-s', '--search', help="Select by search term")
+@click.option('-t', '--tag', help="Select by tag")
 @click.argument('tags', nargs=-1)
 def tag(tags, offset):
     exchange = get_logged_exchange(offset)
@@ -80,8 +83,8 @@ def tag(tags, offset):
 
 @cli.command(help="Show a conversation.")
 @click.option('-n', '--offset', type=int, help="Message offset")
-@click.option('-s', '--search', help="Filter by search term")
-@click.option('-t', '--tag', help="Filter by tag")
+@click.option('-s', '--search', help="Select by search term")
+@click.option('-t', '--tag', help="Select by tag")
 @click.option('-l/-s', '--long/--short', help="Show full conversation or just the most recent message.")
 def show(long, **search_options):
     print(search_options)
