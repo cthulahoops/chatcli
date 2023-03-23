@@ -1,6 +1,7 @@
 import json
 import os.path
 import itertools
+import functools
 import click
 from click_default_group import DefaultGroup
 import openai
@@ -19,6 +20,18 @@ INITIAL_PERSONALITIES = {
 def cli():
     pass
 
+def cli_search_options(command):
+    @click.option('-n', '--offset', type=int, help="Message offset")
+    @click.option('-s', '--search', help="Select by search term")
+    @click.option('-t', '--tag', help="Select by tag")
+    @functools.wraps(command)
+    def wrapper(*args, offset=None, search=None, tag=None, **kwargs):
+        return command(*args, search_options={
+            'offset': offset,
+            'search': search,
+            'tag': tag}, **kwargs)
+    return wrapper
+
 @cli.command(help="Ask a question of ChatGPT.")
 @click.option('-q', '--quick', is_flag=True, help="Just handle a one single-line question.")
 @click.option('-c', '--continue_conversation', '--continue', is_flag=True, help="Continue previous conversation.")
@@ -26,10 +39,8 @@ def cli():
 @click.option('-f', '--file', type=click.Path(exists=True), multiple=True, help="Add a file to the conversation for context.")
 @click.option('-r', '--retry', is_flag=True, help="Retry previous question")
 @click.option('--stream/--sync', default=True, help="Stream or sync mode.")
-@click.option('-n', '--offset', type=int, help="Continue conversation from a given message offset.")
-@click.option('-s', '--search', help="Select by search term")
-@click.option('-t', '--tag', help="Select by tag")
-def chat(quick, continue_conversation, personality, file, retry, stream, **search_options):
+@cli_search_options
+def chat(quick, continue_conversation, personality, file, retry, stream, search_options):
     if (continue_conversation or retry) and not search_options['offset']:
         search_options["offset"] = 1
     elif personality and not search_options['tag'] and not search_options['search']:
@@ -73,33 +84,27 @@ def tags():
         click.echo(tag)
 
 @cli.command(help="Add tags to an exchange.")
-@click.option('-n', '--offset', type=int, help="Message offset")
-@click.option('-s', '--search', help="Select by search term")
-@click.option('-t', '--tag', help="Select by tag")
+@cli_search_options
 @click.argument('tags', nargs=-1)
-def tag(tags, **search_options):
+def tag(tags, search_options):
     exchange = get_logged_exchange(**search_options)
     exchange['tags'] = [tag for tag in exchange.get('tags', []) if tag not in tags]
     exchange['tags'].extend(tags)
     write_log(exchange)
 
 @cli.command(help="Remove tags from an exchange.")
-@click.option('-n', '--offset', type=int, help="Message offset")
-@click.option('-s', '--search', help="Select by search term")
-@click.option('-t', '--tag', help="Select by tag")
+@cli_search_options
 @click.argument('tags', nargs=-1)
-def untag(tags, **search_options):
+def untag(tags, search_options):
     exchange = get_logged_exchange(**search_options)
     exchange['tags'] = [t for t in exchange.get('tags', []) if t not in tags]
     write_log(exchange)
 
 
 @cli.command(help="Show a conversation.")
-@click.option('-n', '--offset', type=int, help="Message offset")
-@click.option('-s', '--search', help="Select by search term")
-@click.option('-t', '--tag', help="Select by tag")
+@cli_search_options
 @click.option('-l/-s', '--long/--short', help="Show full conversation or just the most recent message.")
-def show(long, **search_options):
+def show(long, search_options):
     exchange = get_logged_exchange(**search_options)
     if long:
         for message in exchange['request']:
@@ -115,11 +120,9 @@ def show(long, **search_options):
     click.echo(exchange['response']['choices'][0]['message']["content"])
 
 @cli.command(help="List all the questions we've asked")
-@click.option('-n', '--offset', type=int, help="Message offset")
-@click.option('-s', '--search', help="Filter by search term")
-@click.option('-t', '--tag', help="Filter by tag")
+@cli_search_options
 @click.option('-l', '--limit', type=int, help="Limit number of results")
-def log(limit, **search_options):
+def log(limit, search_options):
     for offset, exchange in reversed(list(itertools.islice(search_exchanges(**search_options), limit))):
         question = exchange['request'][-1]['content']
 
