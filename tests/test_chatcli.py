@@ -1,7 +1,7 @@
 from unittest.mock import patch
 import pytest
 from click.testing import CliRunner
-from chatcli import cli
+from chatcli.chatcli import cli
 
 
 @pytest.fixture(autouse=True)
@@ -18,7 +18,7 @@ def fake_assistant(mocker):
             "choices": [{"message": {"role": "assistant", "content": messages[-1]["content"].upper()}}],
             "usage": {"total_tokens": 41},
         }
-    mocker.patch("chatcli.openai.ChatCompletion.create", advanced_ai)
+    mocker.patch("chatcli.chatcli.openai.ChatCompletion.create", advanced_ai)
 
 
 def test_chat_code():
