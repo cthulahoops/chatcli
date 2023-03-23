@@ -47,7 +47,7 @@ def cli_search_options(command):
 def chat(quick, continue_conversation, personality, file, retry, stream, search_options):
     if (continue_conversation or retry) and not search_options['offset']:
         search_options["offset"] = 1
-    elif personality and not search_options['tag'] and not search_options['search']:
+    elif personality and not search_options['tag'] and not search_options['search'] and not search_options['offset']:
         search_options["tag"] = "^" + personality
 
     exchange = get_logged_exchange(**search_options)
