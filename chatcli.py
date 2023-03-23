@@ -13,7 +13,6 @@ CHAT_LOG = "chatlog.log"
 INITIAL_PERSONALITIES = {
     "concise": "You are a helpful, expert linux user and programmer. You give concise answers, providing code where possible.",
     "code": "You only answer questions with a single example code block only, and no other explanations.",
-    "italiano": "You answer all questions in italian.",
 }
 
 @click.group(cls=DefaultGroup, default='chat', default_if_no_args=True)
@@ -88,7 +87,6 @@ def tag(tags, **search_options):
 @click.option('-t', '--tag', help="Select by tag")
 @click.option('-l/-s', '--long/--short', help="Show full conversation or just the most recent message.")
 def show(long, **search_options):
-    print(search_options)
     exchange = get_logged_exchange(**search_options)
     if long:
         for message in exchange['request']:
