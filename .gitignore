@@ -1,3 +1,4 @@
 chatlog.log
 .envrc
 __pycache__
+__dist__
