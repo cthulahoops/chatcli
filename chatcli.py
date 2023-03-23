@@ -1,5 +1,6 @@
 import json
 import os.path
+import itertools
 import click
 from click_default_group import DefaultGroup
 import openai
@@ -69,9 +70,10 @@ def tags():
             click.echo(tag)
 
 @cli.command(help="Add tags to a conversation.")
+@click.option('-n', '--offset', type=int, help="Apply tags to a given message offset.")
 @click.argument('tags', nargs=-1)
-def tag(tags):
-    exchange = get_logged_exchange(1)
+def tag(tags, offset):
+    exchange = get_logged_exchange(offset)
     exchange.setdefault('tags', []).extend(tags)
     write_log(exchange)
 
@@ -96,18 +98,29 @@ def show(offset, long):
 
 @cli.command(help="List all the questions we've asked")
 @click.option('-s', '--search', help="Filter by search term")
-def log(search):
-    for offset, exchange in reversed(list(enumerate(reversed(conversation_log()), start=1))):
-        # TODO This only exists because my log file still contains entries from earlier versions.
-        if 'request' not in exchange:
-            continue
+@click.option('-t', '--tag', help="Filter by tag")
+@click.option('-n', '--offset', type=int, help="Message offset")
+@click.option('-l', '--limit', type=int, help="Limit number of results")
+def log(search, tag, limit, offset):
+    for offset, exchange in reversed(list(itertools.islice(search_exchanges(offset, search, tag), limit))):
         question = exchange['request'][-1]['content']
-        if search and search not in question:
-            continue
 
         trimmed_message = question.split('\n', 1)[0][:80]
         tags = click.style(f"{' '.join(exchange.get('tags', []))}", fg='green')
         click.echo(f"{click.style(f'{offset: 3d}:', fg='blue')} {trimmed_message} {tags}")
+
+def search_exchanges(offset, search, tag):
+    for idx, exchange in enumerate(reversed(conversation_log()), start=1):
+        # TODO This only exists because my log file still contains entries from earlier versions.
+        if 'request' not in exchange:
+            continue
+        if offset and idx != offset:
+            continue
+        if search and search not in exchange['request'][-1]['content']:
+            continue
+        if tag and tag not in exchange.get('tags', []):
+            continue
+        yield idx, exchange
 
 def conversation(request_messages, stream=True, multiline=True):
     if multiline:
