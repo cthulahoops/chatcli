@@ -1,5 +1,7 @@
 import json
 import os.path
+import os
+import sys
 import itertools
 import functools
 import click
@@ -61,7 +63,7 @@ def chat(quick, continue_conversation, personality, file, retry, stream, search_
         if not quick:
             request_messages.append(response)
             conversation(request_messages, stream)
-    elif quick:
+    elif quick or not os.isatty(0):
         question(request_messages, stream, multiline=False)
     else:
         conversation(request_messages, stream)
@@ -141,15 +143,18 @@ def conversation(request_messages, stream=True, multiline=True):
         request_messages.append(response_message)
 
 def question(request_messages, stream=True, multiline=True):
-    try:
-        message = prompt(">> ", multiline=multiline, prompt_continuation=".. ")
-    except EOFError:
+    if os.isatty(0):
+        try:
+            question = prompt(">> ", multiline=multiline, prompt_continuation=".. ")
+        except EOFError:
+            return None
+        click.echo("....")
+    else:
+        question = sys.stdin.read()
+    question = question.strip()
+    if not question:
         return None
-    message = message.strip()
-    if not message:
-        return None
-    click.echo("....")
-    request_messages.append({"role": "user", "content": message})
+    request_messages.append({"role": "user", "content": question})
     return answer(request_messages, stream)
 
 
