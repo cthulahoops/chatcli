@@ -16,6 +16,8 @@ CHAT_LOG = "chatlog.log"
 INITIAL_PERSONALITIES = {
     "concise": "You are a helpful, expert linux user and programmer. You give concise answers, providing code where possible.",
     "code": "You only answer questions with a single example code block only, and no other explanations.",
+    "commit": """You generate commit messages from diffs. Every line of commit message should be less than eighty characters.
+You never output anything that does not belong in the commit message."""
 }
 
 @click.group(cls=DefaultGroup, default='chat', default_if_no_args=True)
