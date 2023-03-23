@@ -257,6 +257,7 @@ def get_tagged_exchange(tag):
 
 @cli.command(help="Display number of tokens and token cost.")
 def usage():
+    # TODO Tagging double counts usage information...
     tokens = sum(line["response"]["usage"]["total_tokens"] for line in conversation_log() if line["response"])
     click.echo(f'Tokens: {tokens}')
     click.echo(f'Cost: ${cost(tokens):.2f}')
