@@ -100,3 +100,42 @@ def test_chat_retry():
         )
         assert result.exit_code == 0
         assert "WHAT IS YOUR NAME?" in result.output
+
+def test_tag():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            cli, ["chat", "--quick", "-p", "concise"], input="What is your name?", catch_exceptions=False
+        )
+        result = runner.invoke(cli, ["tag", "test_tag"], catch_exceptions=False)
+        assert result.exit_code == 0
+        result = runner.invoke(cli, ["log", "-t", "test_tag"], catch_exceptions=False)
+        assert result.exit_code == 0
+        assert len(result.output.splitlines()) == 1
+        assert "test_tag" in result.output
+
+def test_tags():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            cli, ["chat", "--quick", "-p", "concise"], input="What is your name?", catch_exceptions=False
+        )
+        result = runner.invoke(cli, ["tag", "test_tag"], catch_exceptions=False)
+        result = runner.invoke(cli, ["tag", "test_tag2"], catch_exceptions=False)
+        result = runner.invoke(cli, ["tags"], catch_exceptions=False)
+        assert result.exit_code == 0
+        assert "test_tag" in result.output
+        assert "test_tag2" in result.output
+
+def test_tag_delete():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            cli, ["chat", "--quick", "-p", "concise"], input="What is your name?", catch_exceptions=False
+        )
+        result = runner.invoke(cli, ["tag", "test_tag"], catch_exceptions=False)
+        result = runner.invoke(cli, ["untag", "test_tag"], catch_exceptions=False)
+        assert result.exit_code == 0
+        result = runner.invoke(cli, ["log", "-l", "1"], catch_exceptions=False)
+        assert result.exit_code == 0
+        assert "test_tag" not in result.output
