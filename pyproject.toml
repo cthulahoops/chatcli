@@ -1,6 +1,6 @@
 [tool.poetry]
-name = "chat"
-version = "0.1.0"
+name = "chatcli"
+version = "0.1.2"
 description = ""
 authors = ["Adam Kelly <adam@cthulahoops.org>"]
 
@@ -19,6 +19,9 @@ tiktoken = "^0.3.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.1.0"
+
+[tool.poetry.scripts]
+chatcli = "chatcli.chatcli:cli"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
