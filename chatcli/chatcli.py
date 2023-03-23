@@ -111,8 +111,9 @@ def untag(tags, search_options):
     write_log(exchange)
 
 @cli.command(help="Current tag")
-def show_tag():
-    exchange = get_logged_exchange(offset=0)
+@cli_search_options
+def show_tag(search_options):
+    exchange = get_logged_exchange(**search_options)
     tags = exchange.get('tags', [])
 
     if tags:
