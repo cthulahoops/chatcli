@@ -80,6 +80,16 @@ def tag(tags, **search_options):
     exchange['tags'].extend(tags)
     write_log(exchange)
 
+@cli.command(help="Remove tags from an exchange.")
+@click.option('-n', '--offset', type=int, help="Message offset")
+@click.option('-s', '--search', help="Select by search term")
+@click.option('-t', '--tag', help="Select by tag")
+@click.argument('tags', nargs=-1)
+def untag(tags, **search_options):
+    exchange = get_logged_exchange(**search_options)
+    exchange['tags'] = [t for t in exchange.get('tags', []) if t not in tags]
+    write_log(exchange)
+
 
 @cli.command(help="Show a conversation.")
 @click.option('-n', '--offset', type=int, help="Message offset")
