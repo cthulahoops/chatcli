@@ -71,7 +71,7 @@ def chat(quick, continue_conversation, personality, file, retry, stream, search_
 @cli.command(help="Add new personality.")
 @click.argument('name')
 def add(name):
-    description = prompt("Description: ")
+    description = prompt("Enter system message describing personality:\n", multiline=True)
     exchange = {'request': [{"role": "system", "content": description}], 'response': None, 'tags': ["^" + name]}
     write_log(exchange)
 
