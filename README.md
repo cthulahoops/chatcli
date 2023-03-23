@@ -23,6 +23,8 @@ git clone https://github.com/cthulahoops/chatcli.git
 cd chatcli
 ```
 
+### Installation with Poetry
+
 3. Install Poetry (if you haven't already) by following the official Poetry installation instructions: https://python-poetry.org/docs/#installation
 
 These instructions will guide you through the process of installing Poetry on your machine. Once installed, you can easily manage dependencies and environments for your Python projects using Poetry.
@@ -34,6 +36,18 @@ poetry shell
 poetry install
 ```
 
+### Installation with pip
+
+Alternatively, you can install the dependencies using pip with:
+
+```
+pip install -r requirements.txt
+```
+
+The `requirements.txt` may be less likely to be up to date!
+
+### Running chatcli
+
 5. Set your OpenAI API key in the environment variable `OPENAI_API_SECRET_KEY`.
 
 6. Run chatcli
@@ -42,11 +56,6 @@ poetry install
 chatcli
 ```
 
-Alternatively, you can install the dependencies using pip with:
-
-```
-pip install -r requirements.txt
-```
 
 ## Usage
 
