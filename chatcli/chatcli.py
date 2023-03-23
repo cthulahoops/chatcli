@@ -134,7 +134,11 @@ def show(long, search_options):
             else:
                 color = None
             click.echo(click.style(prefix + message["content"], fg=color))
-    click.echo(exchange['response']['choices'][0]['message']["content"])
+    if exchange['response']:
+        click.echo(exchange['response']['choices'][0]['message']["content"])
+    elif not long:
+        click.echo(exchange['request'][-1]['content'])
+
 
 @cli.command(help="List all the questions we've asked")
 @cli_search_options
