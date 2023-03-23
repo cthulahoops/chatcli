@@ -79,10 +79,13 @@ def tag(tags, offset):
 
 
 @cli.command(help="Show a conversation.")
-@click.option('-n', '--offset', default=1, help="Message offset")
+@click.option('-n', '--offset', type=int, help="Message offset")
+@click.option('-s', '--search', help="Filter by search term")
+@click.option('-t', '--tag', help="Filter by tag")
 @click.option('-l/-s', '--long/--short', help="Show full conversation or just the most recent message.")
-def show(offset, long):
-    exchange = get_logged_exchange(offset)
+def show(long, **search_options):
+    print(search_options)
+    exchange = get_logged_exchange(**search_options)
     if long:
         for message in exchange['request']:
             prefix = ""
@@ -97,30 +100,17 @@ def show(offset, long):
     click.echo(exchange['response']['choices'][0]['message']["content"])
 
 @cli.command(help="List all the questions we've asked")
+@click.option('-n', '--offset', type=int, help="Message offset")
 @click.option('-s', '--search', help="Filter by search term")
 @click.option('-t', '--tag', help="Filter by tag")
-@click.option('-n', '--offset', type=int, help="Message offset")
 @click.option('-l', '--limit', type=int, help="Limit number of results")
-def log(search, tag, limit, offset):
-    for offset, exchange in reversed(list(itertools.islice(search_exchanges(offset, search, tag), limit))):
+def log(limit, **search_options):
+    for offset, exchange in reversed(list(itertools.islice(search_exchanges(**search_options), limit))):
         question = exchange['request'][-1]['content']
 
         trimmed_message = question.split('\n', 1)[0][:80]
         tags = click.style(f"{' '.join(exchange.get('tags', []))}", fg='green')
         click.echo(f"{click.style(f'{offset: 3d}:', fg='blue')} {trimmed_message} {tags}")
-
-def search_exchanges(offset, search, tag):
-    for idx, exchange in enumerate(reversed(conversation_log()), start=1):
-        # TODO This only exists because my log file still contains entries from earlier versions.
-        if 'request' not in exchange:
-            continue
-        if offset and idx != offset:
-            continue
-        if search and search not in exchange['request'][-1]['content']:
-            continue
-        if tag and tag not in exchange.get('tags', []):
-            continue
-        yield idx, exchange
 
 def conversation(request_messages, stream=True, multiline=True):
     if multiline:
@@ -220,8 +210,21 @@ def conversation_log():
     with open(CHAT_LOG, encoding='utf-8') as fh:
         return [json.loads(line) for line in fh]
 
-def get_logged_exchange(offset):
-    return conversation_log()[-offset]
+def search_exchanges(offset, search, tag):
+    for idx, exchange in enumerate(reversed(conversation_log()), start=1):
+        # TODO This only exists because my log file still contains entries from earlier versions.
+        if 'request' not in exchange:
+            continue
+        if offset and idx != offset:
+            continue
+        if search and search not in exchange['request'][-1]['content']:
+            continue
+        if tag and tag not in exchange.get('tags', []):
+            continue
+        yield idx, exchange
+
+def get_logged_exchange(offset, search=None, tag=None):
+    return next(search_exchanges(offset, search, tag))[1]
 
 def get_tagged_exchange(tag):
     for exchange in reversed(conversation_log()):
