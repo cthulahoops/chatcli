@@ -18,36 +18,59 @@ The following steps will guide you through the installation process:
 git clone https://github.com/cthulahoops/chatcli.git
 ```
 
-2. Install the required dependencies:
+2. Navigate to the project directory:
+```
+cd chatcli
+```
+
+3. Install Poetry (if you haven't already) by following the official Poetry installation instructions: https://python-poetry.org/docs/#installation
+
+These instructions will guide you through the process of installing Poetry on your machine. Once installed, you can easily manage dependencies and environments for your Python projects using Poetry.
+
+4. Install ChatCLI using Poetry:
+
+```
+poetry shell
+poetry install
+```
+
+5. Set your OpenAI API key in the environment variable `OPENAI_API_SECRET_KEY`.
+
+6. Run chatcli
+
+```
+chatcli
+```
+
+Alternatively, you can install the dependencies using pip with:
+
 ```
 pip install -r requirements.txt
 ```
-
-3. Set your OpenAI API key in the environment variable `OPENAI_API_SECRET_KEY`.
 
 ## Usage
 
 ### Ask a question
 
-To ask a question, use the `chat` command:
+To ask a question, just run chatcli:
 ```
-chatcli chat
+chatcli
 ```
 This will start a conversation with the chat bot, which will prompt you for a question. You can also include a text file as context for your question by using the `-f` or `--file` option:
 ```
-chatcli chat --file myfile.txt
+chatcli --file myfile.txt
 ```
 
 You can also specify the personality that the chat bot should use with the `-p` or `--personality` option:
 ```
-chatcli chat --personality concise
+chatcli --personality concise
 ```
 
 ### Continue a conversation
 
 To continue a previous conversation, use the `chat` command with the `--continue` option:
 ```
-chatcli chat --continue
+chatcli --continue
 ```
 
 ### Show a conversation
