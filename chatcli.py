@@ -75,9 +75,10 @@ def tags():
 @click.option('-s', '--search', help="Select by search term")
 @click.option('-t', '--tag', help="Select by tag")
 @click.argument('tags', nargs=-1)
-def tag(tags, offset):
-    exchange = get_logged_exchange(offset)
-    exchange.setdefault('tags', []).extend(tags)
+def tag(tags, **search_options):
+    exchange = get_logged_exchange(**search_options)
+    exchange['tags'] = [tag for tag in exchange.get('tags', []) if tag not in tags]
+    exchange['tags'].extend(tags)
     write_log(exchange)
 
 
