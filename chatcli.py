@@ -65,9 +65,12 @@ def add(name):
 
 @cli.command(help="List tags.")
 def tags():
+    tags = set()
     for exchange in conversation_log():
         for tag in exchange.get("tags", []):
-            click.echo(tag)
+            tags.add(tag)
+    for tag in sorted(tags):
+        click.echo(tag)
 
 @cli.command(help="Add tags to an exchange.")
 @click.option('-n', '--offset', type=int, help="Message offset")
