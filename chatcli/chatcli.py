@@ -99,12 +99,7 @@ def tag(tags, search_options):
     new_tags = [tag for tag in exchange.get('tags', []) if tag not in tags]
     new_tags.extend(tags)
 
-    write_log({
-            "messages": exchange['messages'],
-            "tags": new_tags,
-            "usage": None,
-            "completion": None,
-            })
+    write_log(messages=exchange['messages'], tags=new_tags)
 
 @cli.command(help="Remove tags from an exchange.")
 @cli_search_options
@@ -112,12 +107,7 @@ def tag(tags, search_options):
 def untag(tags, search_options):
     exchange = get_logged_exchange(**search_options)
     new_tags = [t for t in exchange.get('tags', []) if t not in tags]
-    write_log({
-            "messages": exchange['messages'],
-            "tags": new_tags,
-            "usage": None,
-            "completion": None,
-            })
+    write_log(messages=exchange['messages'], tags=new_tags)
 
 @cli.command(help="Current tag")
 @cli_search_options
@@ -246,25 +236,29 @@ def answer(request_messages, stream=True, tags=[]):
 
     response_message = completion["choices"][0]["message"]
 
-    write_log({
-        'messages': request_messages + [response_message],
-        'completion': completion,
-        'usage': completion_usage(request_messages, completion),
-        'tags': tags})
+    write_log(
+            messages = request_messages + [response_message],
+            completion = completion,
+            usage = completion_usage(request_messages, completion),
+            tags = tags)
 
     return response_message
 
 def cost(tokens):
     return tokens / 1000 * 0.002
 
-def write_log(message):
+def write_log(messages, completion=None, usage=None, tags=[]):
     with open(CHAT_LOG, "a", buffering=1, encoding='utf-8') as fh:
-        fh.write(json.dumps(message) + "\n")
+        fh.write(json.dumps({
+            "messages": messages,
+            "completion": completion,
+            "usage": usage,
+            "tags": tags}) + "\n")
 
 
 def create_initial_log():
     for key, value in INITIAL_PERSONALITIES.items():
-        write_log({"messages": [{"role": "system", "content": value}], "completion": None, "usage": None, "tags": ["^" + key]})
+        write_log(messages=[{"role": "system", "content": value}], tags=["^" + key])
 
 def conversation_log():
     if not os.path.exists(CHAT_LOG):
