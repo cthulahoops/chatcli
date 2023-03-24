@@ -184,3 +184,11 @@ def test_current_tag_follows_conversation():
         result = runner.invoke(cli, ["show-tag"], catch_exceptions=False)
         assert result.exit_code == 0
         assert "test_tag" in result.output
+
+def test_add_personality():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["add", "test_personality"], input="You are a test personality.", catch_exceptions=False)
+        assert result.exit_code == 0
+        result = runner.invoke(cli, ["log"], catch_exceptions=False)
+        assert "^test_personality" in result.output
