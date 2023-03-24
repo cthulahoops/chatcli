@@ -76,10 +76,12 @@ def chat(quick, continue_conversation, personality, file, retry, stream, search_
 
 @cli.command(help="Add new personality.")
 @click.argument('name')
-def add(name):
-    description = prompt("Enter system message describing personality:\n", multiline=True)
-    exchange = {'messages': [{"role": "system", "content": description}], 'response': None, 'tags': ["^" + name]}
-    write_log(exchange)
+@click.option('--multiline/--singleline', default=True)
+def add(name, multiline=True):
+    if multiline and os.isatty(0):
+        click.echo("(Finish input with <Alt-Enter> or <Esc><Enter>)")
+    description = prompt(multiline=True)
+    write_log(messages=[{"role": "system", "content": description}], tags=["^" + name])
 
 
 @cli.command(help="List tags.")
