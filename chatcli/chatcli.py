@@ -7,7 +7,7 @@ import functools
 import click
 from click_default_group import DefaultGroup
 import openai
-from prompt_toolkit import prompt
+import prompt_toolkit
 import tiktoken
 
 ENGINE = "gpt-3.5-turbo"
@@ -156,7 +156,7 @@ def log(limit, search_options):
         click.echo(f"{click.style(f'{offset: 3d}:', fg='blue')} {trimmed_message} {tags}")
 
 def conversation(request_messages, tags=tags, stream=True, multiline=True):
-    if multiline:
+    if multiline and os.isatty(0):
         click.echo("(Finish input with <Alt-Enter> or <Esc><Enter>)")
 
     while True:
@@ -166,19 +166,24 @@ def conversation(request_messages, tags=tags, stream=True, multiline=True):
         request_messages.append(response_message)
 
 def question(request_messages, tags=None, stream=True, multiline=True):
+    question = prompt(multiline=multiline)
     if os.isatty(0):
-        try:
-            question = prompt(">> ", multiline=multiline, prompt_continuation=".. ")
-        except EOFError:
-            return None
         click.echo("....")
-    else:
-        question = sys.stdin.read()
-    question = question.strip()
     if not question:
         return None
     request_messages.append({"role": "user", "content": question})
     return answer(request_messages, stream=stream, tags=tags)
+
+
+def prompt(multiline=True):
+    if os.isatty(0):
+        try:
+            return prompt_toolkit.prompt(">> ", multiline=multiline, prompt_continuation=".. ").strip()
+        except EOFError:
+            return None
+        click.echo("....")
+    else:
+        return sys.stdin.read().strip()
 
 
 def synchroneous_request(request_messages):
