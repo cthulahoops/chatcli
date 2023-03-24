@@ -51,9 +51,7 @@ def chat(quick, continue_conversation, personality, file, retry, stream, search_
         search_options["tag"] = "^" + personality
 
     exchange = get_logged_exchange(**search_options)
-    request_messages = exchange['request']
-    if exchange['response']:
-        request_messages.append(exchange['response']['choices'][0]['message'])
+    request_messages = exchange['messages']
 
     for filename in file:
         with open(filename, encoding="utf-8") as fh:
@@ -80,7 +78,7 @@ def chat(quick, continue_conversation, personality, file, retry, stream, search_
 @click.argument('name')
 def add(name):
     description = prompt("Enter system message describing personality:\n", multiline=True)
-    exchange = {'request': [{"role": "system", "content": description}], 'response': None, 'tags': ["^" + name]}
+    exchange = {'messages': [{"role": "system", "content": description}], 'response': None, 'tags': ["^" + name]}
     write_log(exchange)
 
 
@@ -125,20 +123,20 @@ def show_tag(search_options):
 def show(long, search_options):
     exchange = get_logged_exchange(**search_options)
     if long:
-        for message in exchange['request']:
-            prefix = ""
-            if message['role'] == 'user':
-                color = (186, 85, 211)
-                prefix = ">> "
-            elif message['role'] == 'system':
-                color = (100, 150, 200)
-            else:
-                color = None
-            click.echo(click.style(prefix + message["content"], fg=color))
-    if exchange['response']:
-        click.echo(exchange['response']['choices'][0]['message']["content"])
-    elif not long:
-        click.echo(exchange['request'][-1]['content'])
+        messages = exchange["messages"]
+    else:
+        messages = exchange["messages"][-1:]
+
+    for message in messages:
+        prefix = ""
+        if message['role'] == 'user':
+            color = (186, 85, 211)
+            prefix = ">> "
+        elif message['role'] == 'system':
+            color = (100, 150, 200)
+        else:
+            color = None
+        click.echo(click.style(prefix + message["content"], fg=color))
 
 
 @cli.command(help="List all the questions we've asked")
@@ -146,7 +144,11 @@ def show(long, search_options):
 @click.option('-l', '--limit', type=int, help="Limit number of results")
 def log(limit, search_options):
     for offset, exchange in reversed(list(itertools.islice(search_exchanges(**search_options), limit))):
-        question = exchange['request'][-1]['content']
+        messages = exchange['messages']
+        if len(messages) > 1:
+            question = exchange['messages'][-2]['content']
+        else:
+            question = exchange['messages'][-1]['content']
 
         trimmed_message = question.split('\n', 1)[0][:80]
         tags = click.style(f"{' '.join(exchange.get('tags', []))}", fg='green')
@@ -209,17 +211,21 @@ def stream_request(request_messages):
         if content_chunk:
             click.echo(content_chunk, nl=False)
 
+    click.echo()
+    return completion
+
+def completion_usage(request_messages, completion):
+    if 'usage' in completion:
+        return completion['usage']
+
     encoding = tiktoken.encoding_for_model(ENGINE)
     request_text = ' '.join("role: " + x['role'] + " content: " + x['content'] + "\n" for x in request_messages)
     request_tokens = len(encoding.encode(request_text))
     completion_tokens = len(encoding.encode(completion["choices"][0]["message"]["content"]))
-    completion["usage"] = {
+    return {
             "request_tokens": request_tokens,
              "completion_tokens": completion_tokens,
              "total_tokens": request_tokens + completion_tokens}
-
-    click.echo()
-    return completion
 
 def answer(request_messages, stream=True, tags=[]):
     if stream:
@@ -227,11 +233,14 @@ def answer(request_messages, stream=True, tags=[]):
     else:
         completion = synchroneous_request(request_messages)
 
-    write_log({'request': request_messages, 'response': completion, 'tags': tags})
-
-#   click.echo(f"Usage: ${cost(completion['usage']['total_tokens']):.3f}")
-#    click.echo(response_message["content"])
     response_message = completion["choices"][0]["message"]
+
+    write_log({
+        'messages': request_messages + [response_message],
+        'completion': completion,
+        'usage': completion_usage(request_messages, completion),
+        'tags': tags})
+
     return response_message
 
 def cost(tokens):
@@ -244,7 +253,7 @@ def write_log(message):
 
 def create_initial_log():
     for key, value in INITIAL_PERSONALITIES.items():
-        write_log({"request": [{"role": "system", "content": value}], "response": {}, "tags": ["^" + key]})
+        write_log({"messages": [{"role": "system", "content": value}], "completion": None, "usage": None, "tags": ["^" + key]})
 
 def conversation_log():
     if not os.path.exists(CHAT_LOG):
@@ -256,11 +265,17 @@ def conversation_log():
 def search_exchanges(offset, search, tag):
     for idx, exchange in enumerate(reversed(conversation_log()), start=1):
         # TODO This only exists because my log file still contains entries from earlier versions.
-        if 'request' not in exchange:
+        if 'request' not in exchange and 'messages' not in exchange:
             continue
         if offset and idx != offset:
             continue
-        if search and search not in exchange['request'][-1]['content']:
+
+        if len(exchange['messages']) > 1:
+            question = exchange['messages'][-2]['content']
+        else:
+            question = exchange['messages'][-1]['content']
+
+        if search and search not in question:
             continue
         if tag and tag not in exchange.get('tags', []):
             continue
@@ -278,7 +293,7 @@ def get_tagged_exchange(tag):
 @cli.command(help="Display number of tokens and token cost.")
 def usage():
     # TODO Tagging double counts usage information...
-    tokens = sum(line["response"]["usage"]["total_tokens"] for line in conversation_log() if line["response"])
+    tokens = sum(exchange["usage"]["total_tokens"] for exchange in conversation_log() if exchange["usage"])
     click.echo(f'Tokens: {tokens}')
     click.echo(f'Cost: ${cost(tokens):.2f}')
 

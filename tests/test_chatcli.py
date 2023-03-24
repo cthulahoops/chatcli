@@ -59,7 +59,7 @@ def test_log(mocker):
             cli, ["chat", "--quick", "-p", "concise"], input="What is your name?", catch_exceptions=False
         )
         result = runner.invoke(
-            cli, ["chat", "--quick", "-c", "-p", "italiano"], input="What is your quest?", catch_exceptions=False
+            cli, ["chat", "--quick", "-c"], input="What is your quest?", catch_exceptions=False
         )
         result = runner.invoke(cli, ["log"], catch_exceptions=False)
         assert result.exit_code == 0
@@ -73,7 +73,7 @@ def test_chat_log_search():
             cli, ["chat", "--quick", "-p", "concise"], input="What is your name?", catch_exceptions=False
         )
         result = runner.invoke(
-            cli, ["chat", "--quick", "-c", "-p", "italiano"], input="What is your quest?", catch_exceptions=False
+            cli, ["chat", "--quick", "-c"], input="What is your quest?", catch_exceptions=False
         )
         result = runner.invoke(cli, ["log", "-s", "name"], catch_exceptions=False)
         assert result.exit_code == 0
