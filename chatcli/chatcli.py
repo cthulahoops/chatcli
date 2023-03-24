@@ -157,6 +157,49 @@ def log(limit, search_options):
         tags = click.style(f"{' '.join(exchange.get('tags', []))}", fg='green')
         click.echo(f"{click.style(f'{offset: 3d}:', fg='blue')} {trimmed_message} {tags}")
 
+
+# Add command to convert old chatlog format:
+@cli.command(help="Convert old chatlog format to new format.")
+@click.argument('filename', type=click.Path(exists=True))
+def convert(filename, inplace=False):
+    with open(filename, "r") as fh:
+        for line in fh:
+            data = json.loads(line)
+
+            if "request" in data:
+                if data["response"]:
+                    assistant_message = data["response"]["choices"][0]["message"]
+                    if "role" not in assistant_message:
+                        assistant_message["role"] = "assistant"
+                    messages = data["request"] + [assistant_message]
+                    usage = data["response"].get("usage")
+                else:
+                    messages = data["request"]
+                    usage = None
+            elif "response" in data:
+                messages = [data["response"]["choices"][0]["message"]]
+                usage = data["response"]["usage"]
+            else:
+                messages = data["messages"]
+                usage = data["usage"]
+
+            tags = data.get("tags", [])
+            completion = data.get("completion") or data.get("response")
+
+            assert isinstance(messages, list), data
+            assert isinstance(tags, list), data
+            assert isinstance(completion, dict) or completion is None, (completion, data)
+            assert isinstance(usage, dict) or usage is None, (usage, data)
+
+            converted_data = {
+                "messages": messages,
+                "completion": completion,
+                "tags": tags,
+                "usage": usage,
+            }
+            print(json.dumps(converted_data))
+
+
 def conversation(request_messages, tags=tags, stream=True, multiline=True):
     if multiline and os.isatty(0):
         click.echo("(Finish input with <Alt-Enter> or <Esc><Enter>)")
@@ -255,6 +298,10 @@ def cost(tokens):
     return tokens / 1000 * 0.002
 
 def write_log(messages, completion=None, usage=None, tags=[]):
+    assert isinstance(messages, list)
+    assert isinstance(tags, list)
+    assert isinstance(completion, dict) or completion is None
+    assert isinstance(usage, dict) or usage is None
     with open(CHAT_LOG, "a", buffering=1, encoding='utf-8') as fh:
         fh.write(json.dumps({
             "messages": messages,

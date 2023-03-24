@@ -1,5 +1,6 @@
 from unittest.mock import patch
 import pytest
+import json
 from click.testing import CliRunner
 from chatcli.chatcli import cli
 
@@ -192,3 +193,12 @@ def test_add_personality():
         assert result.exit_code == 0
         result = runner.invoke(cli, ["log"], catch_exceptions=False)
         assert "^test_personality" in result.output
+
+def test_convert_is_noop():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["chat"], input="What is your name?", catch_exceptions=False)
+        result = runner.invoke(cli, ["tag", "test"], input="What is your name?", catch_exceptions=False)
+        result = runner.invoke(cli, ["convert", "chatlog.log"], catch_exceptions=False)
+        assert result.exit_code == 0
+        assert [json.loads(x) for x in result.output.splitlines()] == [json.loads(x) for x in open("chatlog.log", encoding="utf-8").read().splitlines()]
