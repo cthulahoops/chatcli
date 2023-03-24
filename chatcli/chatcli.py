@@ -96,17 +96,28 @@ def tags():
 @click.argument('tags', nargs=-1)
 def tag(tags, search_options):
     exchange = get_logged_exchange(**search_options)
-    exchange['tags'] = [tag for tag in exchange.get('tags', []) if tag not in tags]
-    exchange['tags'].extend(tags)
-    write_log(exchange)
+    new_tags = [tag for tag in exchange.get('tags', []) if tag not in tags]
+    new_tags.extend(tags)
+
+    write_log({
+            "messages": exchange['messages'],
+            "tags": new_tags,
+            "usage": None,
+            "completion": None,
+            })
 
 @cli.command(help="Remove tags from an exchange.")
 @cli_search_options
 @click.argument('tags', nargs=-1)
 def untag(tags, search_options):
     exchange = get_logged_exchange(**search_options)
-    exchange['tags'] = [t for t in exchange.get('tags', []) if t not in tags]
-    write_log(exchange)
+    new_tags = [t for t in exchange.get('tags', []) if t not in tags]
+    write_log({
+            "messages": exchange['messages'],
+            "tags": new_tags,
+            "usage": None,
+            "completion": None,
+            })
 
 @cli.command(help="Current tag")
 @cli_search_options

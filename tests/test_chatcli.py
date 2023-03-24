@@ -91,6 +91,28 @@ def test_usage():
         assert "Cost: $0.00" in result.output
 
 
+def test_tag_usage():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["chat"], input="What is your name?", catch_exceptions=False)
+        result = runner.invoke(cli, ["chat"], input="What is your name?", catch_exceptions=False)
+        result = runner.invoke(cli, ["tag", "test_tag"], catch_exceptions=False)
+        result = runner.invoke(cli, ["usage"], catch_exceptions=False)
+        assert result.exit_code == 0
+        assert "Tokens: 82" in result.output
+        assert "Cost: $0.00" in result.output
+
+def test_untag_usage():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["chat"], input="What is your name?", catch_exceptions=False)
+        result = runner.invoke(cli, ["chat"], input="What is your name?", catch_exceptions=False)
+        result = runner.invoke(cli, ["untag", "test_tag"], catch_exceptions=False)
+        result = runner.invoke(cli, ["usage"], catch_exceptions=False)
+        assert result.exit_code == 0
+        assert "Tokens: 82" in result.output
+        assert "Cost: $0.00" in result.output
+
 def test_chat_retry():
     runner = CliRunner()
     with runner.isolated_filesystem():
