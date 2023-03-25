@@ -1,3 +1,4 @@
+import os
 import os.path
 import datetime
 import json
@@ -9,7 +10,7 @@ INITIAL_PERSONALITIES = {
 You never output anything that does not belong in the commit message.""",
 }
 
-CHAT_LOG = "chatlog.log"
+CHAT_LOG = os.environ.get("CHATCLI_LOGFILE", "chatlog.log")
 
 
 def write_log(messages, completion=None, usage=None, tags=None):
@@ -18,7 +19,10 @@ def write_log(messages, completion=None, usage=None, tags=None):
     assert isinstance(completion, dict) or completion is None
     assert isinstance(usage, dict) or usage is None
     timestamp = datetime.datetime.now().isoformat()
-    with open(CHAT_LOG, "a", buffering=1, encoding="utf-8") as fh:
+
+    path = find_log()
+
+    with open(path, "a", buffering=1, encoding="utf-8") as fh:
         fh.write(
             json.dumps(
                 {
@@ -39,11 +43,22 @@ def create_initial_log():
 
 
 def conversation_log():
-    if not os.path.exists(CHAT_LOG):
-        create_initial_log()
+    # if not os.path.exists(CHAT_LOG):
+    #     create_initial_log()
 
-    with open(CHAT_LOG, encoding="utf-8") as fh:
+    log_path = find_log()
+    with open(log_path, encoding="utf-8") as fh:
         return [json.loads(line) for line in fh]
+
+
+def find_log():
+    path = CHAT_LOG
+    while not os.path.exists(path):
+        if os.path.dirname(os.path.abspath(path)) == "/":
+            raise FileNotFoundError("Could not find chat log")
+        path = "../" + path
+
+    return path
 
 
 def search_exchanges(offset, search, tag):
