@@ -175,7 +175,7 @@ def log(limit, search_options):
 @cli.command(help="Convert old chatlog format to new format.")
 @click.argument('filename', type=click.Path(exists=True))
 def convert(filename, inplace=False):
-    with open(filename, "r") as fh:
+    with open(filename, "r", encoding="utf-8") as fh:
         for line in fh:
             data = json.loads(line)
 
