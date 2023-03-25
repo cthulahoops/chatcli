@@ -65,3 +65,48 @@ def search_exchanges(offset, search, tag):
 
 def get_logged_exchange(offset, search=None, tag=None):
     return next(search_exchanges(offset, search, tag))[1]
+
+
+def convert_log(filename):
+    with open(filename, "r", encoding="utf-8") as fh:
+        for line in fh:
+            data = json.loads(line)
+
+            if "request" in data:
+                if data["response"]:
+                    assistant_message = data["response"]["choices"][0]["message"]
+                    if "role" not in assistant_message:
+                        assistant_message["role"] = "assistant"
+                    messages = data["request"] + [assistant_message]
+                    usage = data["response"].get("usage")
+                else:
+                    messages = data["request"]
+                    usage = None
+            elif "response" in data:
+                messages = [data["response"]["choices"][0]["message"]]
+                usage = data["response"]["usage"]
+            else:
+                messages = data["messages"]
+                usage = data["usage"]
+
+            tags = data.get("tags", [])
+            completion = data.get("completion") or data.get("response")
+
+            timestamp = data.get("timestamp", datetime.datetime.now().isoformat())
+
+            assert isinstance(messages, list), data
+            assert isinstance(tags, list), data
+            assert isinstance(completion, dict) or completion is None, (
+                completion,
+                data,
+            )
+            assert isinstance(usage, dict) or usage is None, (usage, data)
+
+            converted_data = {
+                "messages": messages,
+                "completion": completion,
+                "tags": tags,
+                "usage": usage,
+                "timestamp": timestamp,
+            }
+            yield json.dumps(converted_data)
