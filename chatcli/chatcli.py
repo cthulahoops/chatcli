@@ -4,6 +4,7 @@ import os
 import sys
 import itertools
 import functools
+import datetime
 import click
 from click_default_group import DefaultGroup
 import openai
@@ -236,6 +237,8 @@ def convert(filename, inplace=False):
             tags = data.get("tags", [])
             completion = data.get("completion") or data.get("response")
 
+            timestamp = data.get("timestamp", datetime.datetime.now().isoformat())
+
             assert isinstance(messages, list), data
             assert isinstance(tags, list), data
             assert isinstance(completion, dict) or completion is None, (
@@ -249,6 +252,7 @@ def convert(filename, inplace=False):
                 "completion": completion,
                 "tags": tags,
                 "usage": usage,
+                "timestamp": timestamp,
             }
             print(json.dumps(converted_data))
 
@@ -352,6 +356,7 @@ def write_log(messages, completion=None, usage=None, tags=None):
     assert isinstance(tags, list) or tags is None
     assert isinstance(completion, dict) or completion is None
     assert isinstance(usage, dict) or usage is None
+    timestamp = datetime.datetime.now().isoformat()
     with open(CHAT_LOG, "a", buffering=1, encoding="utf-8") as fh:
         fh.write(
             json.dumps(
@@ -360,6 +365,7 @@ def write_log(messages, completion=None, usage=None, tags=None):
                     "completion": completion,
                     "usage": usage,
                     "tags": tags or [],
+                    "timestamp": timestamp,
                 }
             )
             + "\n"
