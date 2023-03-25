@@ -5,6 +5,7 @@ import sys
 import itertools
 import functools
 import datetime
+import textwrap
 import click
 from click_default_group import DefaultGroup
 import openai
@@ -209,8 +210,13 @@ def log(limit, search_options):
         click.echo(f"{click.style(f'{offset: 3d}:', fg='blue')} {trimmed_message} {tags}")
 
 
-# Add command to convert old chatlog format:
-@cli.command(help="Convert old chatlog format to new format.")
+@cli.command(help=textwrap.dedent("""Convert old chatlog format to new format.
+    Recommended usage:
+
+    \b
+    cp -i chatlog.json chatlog.json.bak
+    chatlog convert chatlog.json.bak > chatlog.json
+    """))
 @click.argument("filename", type=click.Path(exists=True))
 def convert(filename, inplace=False):
     with open(filename, "r", encoding="utf-8") as fh:
