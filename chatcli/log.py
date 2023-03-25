@@ -13,14 +13,14 @@ You never output anything that does not belong in the commit message.""",
 CHAT_LOG = os.environ.get("CHATCLI_LOGFILE", "chatlog.log")
 
 
-def write_log(messages, completion=None, usage=None, tags=None):
+def write_log(messages, completion=None, usage=None, tags=None, path=None):
     assert isinstance(messages, list)
     assert isinstance(tags, list) or tags is None
     assert isinstance(completion, dict) or completion is None
     assert isinstance(usage, dict) or usage is None
     timestamp = datetime.datetime.now().isoformat()
 
-    path = find_log()
+    path = path or find_log()
 
     with open(path, "a", buffering=1, encoding="utf-8") as fh:
         fh.write(
@@ -38,14 +38,14 @@ def write_log(messages, completion=None, usage=None, tags=None):
 
 
 def create_initial_log():
+    if os.path.exists(CHAT_LOG):
+        raise FileExistsError(CHAT_LOG)
+
     for key, value in INITIAL_PERSONALITIES.items():
-        write_log(messages=[{"role": "system", "content": value}], tags=["^" + key])
+        write_log(messages=[{"role": "system", "content": value}], tags=["^" + key], path=CHAT_LOG)
 
 
 def conversation_log():
-    # if not os.path.exists(CHAT_LOG):
-    #     create_initial_log()
-
     log_path = find_log()
     with open(log_path, encoding="utf-8") as fh:
         return [json.loads(line) for line in fh]
@@ -55,9 +55,8 @@ def find_log():
     path = CHAT_LOG
     while not os.path.exists(path):
         if os.path.dirname(os.path.abspath(path)) == "/":
-            raise FileNotFoundError("Could not find chat log")
+            raise FileNotFoundError(CHAT_LOG)
         path = "../" + path
-
     return path
 
 

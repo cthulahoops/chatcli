@@ -9,7 +9,7 @@ from click_default_group import DefaultGroup
 import openai
 import prompt_toolkit
 import tiktoken
-from .log import write_log, search_exchanges, get_logged_exchange, conversation_log, convert_log
+from .log import write_log, search_exchanges, get_logged_exchange, conversation_log, convert_log, create_initial_log
 
 ENGINE = "gpt-3.5-turbo"
 
@@ -95,6 +95,13 @@ def chat(quick, continue_conversation, personality, file, retry, stream, search_
     else:
         conversation(request_messages, stream=stream, tags=tags_to_apply)
 
+@cli.command(help="Create initial conversation log.")
+def init():
+    try:
+        create_initial_log()
+    except FileExistsError as error:
+        click.echo(f"{error}: Conversation log already exists.")
+        sys.exit(1)
 
 @cli.command(help="Add a message to a new or existing conversation.")
 @click.option("--multiline/--singleline", default=True)
@@ -213,7 +220,7 @@ def log(limit, search_options):
     )
 )
 @click.argument("filename", type=click.Path(exists=True))
-def convert(filename, inplace=False):
+def convert(filename):
     for line in convert_log(filename):
         print(line)
 
@@ -319,5 +326,12 @@ def show_usage():
     click.echo(f"Cost: ${cost(tokens):.2f}")
 
 
+def main():
+    try:
+        cli()
+    except FileNotFoundError as error:
+        click.echo(f"{error}: Chatlog not initialized. Run `chatlog init` first.")
+        sys.exit(1)
+
 if __name__ == "__main__":
-    cli()
+    main()

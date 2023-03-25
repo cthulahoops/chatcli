@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "chatcli"
-version = "0.2.0"
+version = "0.2.1"
 description = ""
 authors = ["Adam Kelly <adam@cthulahoops.org>"]
 
@@ -22,7 +22,7 @@ black = "^23.1.0"
 pylint = "^2.17.1"
 
 [tool.poetry.scripts]
-chatcli = "chatcli.chatcli:cli"
+chatcli = "chatcli.chatcli:main"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

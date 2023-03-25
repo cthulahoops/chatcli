@@ -26,6 +26,7 @@ def fake_assistant(mocker):
 def test_chat_code():
     runner = CliRunner()
     with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["init"], catch_exceptions=False)
         result = runner.invoke(
             cli, ["chat", "--quick", "-p", "code"], input="Say hello in python", catch_exceptions=False
         )
@@ -36,6 +37,7 @@ def test_chat_code():
 def test_show_short():
     runner = CliRunner()
     with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["init"], catch_exceptions=False)
         result = runner.invoke(cli, ["chat", "-q"], input="What is your name?", catch_exceptions=False)
         result = runner.invoke(cli, ["show", "-s"], catch_exceptions=False)
         assert result.exit_code == 0
@@ -46,6 +48,7 @@ def test_show_short():
 def test_show_long(mocker):
     runner = CliRunner()
     with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["init"], catch_exceptions=False)
         result = runner.invoke(cli, ["chat", "-q"], input="What is your name?", catch_exceptions=False)
         result = runner.invoke(cli, ["show", "-l"], catch_exceptions=False)
         assert result.exit_code == 0
@@ -57,6 +60,7 @@ def test_show_long(mocker):
 def test_log(mocker):
     runner = CliRunner()
     with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["init"], catch_exceptions=False)
         result = runner.invoke(
             cli, ["chat", "--quick", "-p", "concise"], input="What is your name?", catch_exceptions=False
         )
@@ -70,6 +74,7 @@ def test_log(mocker):
 def test_chat_log_search():
     runner = CliRunner()
     with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["init"], catch_exceptions=False)
         result = runner.invoke(
             cli, ["chat", "--quick", "-p", "concise"], input="What is your name?", catch_exceptions=False
         )
@@ -83,6 +88,7 @@ def test_chat_log_search():
 def test_usage():
     runner = CliRunner()
     with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["init"], catch_exceptions=False)
         result = runner.invoke(cli, ["chat"], input="What is your name?", catch_exceptions=False)
         result = runner.invoke(cli, ["chat"], input="What is your name?", catch_exceptions=False)
         result = runner.invoke(cli, ["usage"], catch_exceptions=False)
@@ -94,6 +100,7 @@ def test_usage():
 def test_tag_usage():
     runner = CliRunner()
     with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["init"], catch_exceptions=False)
         result = runner.invoke(cli, ["chat"], input="What is your name?", catch_exceptions=False)
         result = runner.invoke(cli, ["chat"], input="What is your name?", catch_exceptions=False)
         result = runner.invoke(cli, ["tag", "test_tag"], catch_exceptions=False)
@@ -106,6 +113,7 @@ def test_tag_usage():
 def test_untag_usage():
     runner = CliRunner()
     with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["init"], catch_exceptions=False)
         result = runner.invoke(cli, ["chat"], input="What is your name?", catch_exceptions=False)
         result = runner.invoke(cli, ["chat"], input="What is your name?", catch_exceptions=False)
         result = runner.invoke(cli, ["untag", "test_tag"], catch_exceptions=False)
@@ -118,6 +126,7 @@ def test_untag_usage():
 def test_chat_retry():
     runner = CliRunner()
     with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["init"], catch_exceptions=False)
         result = runner.invoke(cli, ["chat"], input="What is your name?", catch_exceptions=False)
         result = runner.invoke(cli, ["chat", "--quick", "--retry"], catch_exceptions=False)
         assert result.exit_code == 0
@@ -127,6 +136,7 @@ def test_chat_retry():
 def test_tag():
     runner = CliRunner()
     with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["init"], catch_exceptions=False)
         result = runner.invoke(
             cli, ["chat", "--quick", "-p", "concise"], input="What is your name?", catch_exceptions=False
         )
@@ -141,6 +151,7 @@ def test_tag():
 def test_tags():
     runner = CliRunner()
     with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["init"], catch_exceptions=False)
         result = runner.invoke(
             cli, ["chat", "--quick", "-p", "concise"], input="What is your name?", catch_exceptions=False
         )
@@ -155,6 +166,7 @@ def test_tags():
 def test_tag_delete():
     runner = CliRunner()
     with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["init"], catch_exceptions=False)
         result = runner.invoke(
             cli, ["chat", "--quick", "-p", "concise"], input="What is your name?", catch_exceptions=False
         )
@@ -169,6 +181,7 @@ def test_tag_delete():
 def test_show_tag():
     runner = CliRunner()
     with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["init"], catch_exceptions=False)
         result = runner.invoke(
             cli, ["chat", "--quick", "-p", "concise"], input="What is your name?", catch_exceptions=False
         )
@@ -181,6 +194,7 @@ def test_show_tag():
 def test_current_tag_follows_conversation():
     runner = CliRunner()
     with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["init"], catch_exceptions=False)
         result = runner.invoke(
             cli, ["chat", "--quick", "-p", "concise"], input="What is your name?", catch_exceptions=False
         )
@@ -196,6 +210,7 @@ def test_current_tag_follows_conversation():
 def test_add_personality():
     runner = CliRunner()
     with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["init"], catch_exceptions=False)
         result = runner.invoke(
             cli, ["add", "-p", "test_personality"], input="You are a test personality.", catch_exceptions=False
         )
@@ -207,6 +222,7 @@ def test_add_personality():
 def test_convert_is_noop():
     runner = CliRunner()
     with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["init"], catch_exceptions=False)
         result = runner.invoke(cli, ["chat"], input="What is your name?", catch_exceptions=False)
         result = runner.invoke(cli, ["tag", "test"], input="What is your name?", catch_exceptions=False)
         result = runner.invoke(cli, ["convert", "chatlog.log"], catch_exceptions=False)

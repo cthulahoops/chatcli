@@ -1,3 +1,3 @@
-from .chatcli import cli
+from .chatcli import main
 
-cli()
+main()
