@@ -92,7 +92,11 @@ def convert_log(filename):
             tags = data.get("tags", [])
             completion = data.get("completion") or data.get("response")
 
-            timestamp = data.get("timestamp", datetime.datetime.now().isoformat())
+            timestamp = (
+                data.get("timestamp")
+                or (completion and datetime.datetime.fromtimestamp(completion.get("created")).isoformat())
+                or datetime.datetime.now().isoformat()
+            )
 
             assert isinstance(messages, list), data
             assert isinstance(tags, list), data
