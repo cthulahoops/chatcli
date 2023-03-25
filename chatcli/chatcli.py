@@ -412,13 +412,6 @@ def get_logged_exchange(offset, search=None, tag=None):
     return next(search_exchanges(offset, search, tag))[1]
 
 
-def get_tagged_exchange(tag):
-    for exchange in reversed(conversation_log()):
-        if "tags" in exchange and tag in exchange["tags"]:
-            return exchange
-    raise click.ClickException(f"No exchange with tag {tag} found.")
-
-
 @cli.command(help="Display number of tokens and token cost.", name="usage")
 def show_usage():
     tokens = sum(exchange["usage"]["total_tokens"] for exchange in conversation_log() if exchange["usage"])
