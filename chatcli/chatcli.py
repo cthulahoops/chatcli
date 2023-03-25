@@ -97,8 +97,8 @@ def add(personality, role, multiline, search_options):
     write_log(messages=messages, tags=tags)
 
 
-@cli.command(help="List tags.")
-def tags():
+@cli.command(help="List tags.", name="tags")
+def list_tags():
     tags = set()
     for exchange in conversation_log():
         for tag in exchange.get("tags", []):
@@ -106,10 +106,10 @@ def tags():
     for tag in sorted(tags):
         click.echo(tag)
 
-@cli.command(help="Add tags to an exchange.")
+@cli.command(help="Add tags to an exchange.", name="tag")
 @cli_search_options
 @click.argument('tags', nargs=-1)
-def tag(tags, search_options):
+def add_tag(tags, search_options):
     exchange = get_logged_exchange(**search_options)
     new_tags = [tag for tag in exchange.get('tags', []) if tag not in tags]
     new_tags.extend(tags)
@@ -357,8 +357,8 @@ def get_tagged_exchange(tag):
             return exchange
     raise click.ClickException(f"No exchange with tag {tag} found.")
 
-@cli.command(help="Display number of tokens and token cost.")
-def usage():
+@cli.command(help="Display number of tokens and token cost.", name="usage")
+def show_usage():
     # TODO Tagging double counts usage information...
     tokens = sum(exchange["usage"]["total_tokens"] for exchange in conversation_log() if exchange["usage"])
     click.echo(f'Tokens: {tokens}')
