@@ -213,7 +213,7 @@ def convert(filename, inplace=False):
             print(json.dumps(converted_data))
 
 
-def conversation(request_messages, tags=tags, stream=True, multiline=True):
+def conversation(request_messages, tags=None, stream=True, multiline=True):
     if multiline and os.isatty(0):
         click.echo("(Finish input with <Alt-Enter> or <Esc><Enter>)")
 
@@ -291,7 +291,7 @@ def completion_usage(request_messages, completion):
              "completion_tokens": completion_tokens,
              "total_tokens": request_tokens + completion_tokens}
 
-def answer(request_messages, stream=True, tags=[]):
+def answer(request_messages, stream=True, tags=None):
     if stream:
         completion = stream_request(request_messages)
     else:
@@ -310,9 +310,9 @@ def answer(request_messages, stream=True, tags=[]):
 def cost(tokens):
     return tokens / 1000 * 0.002
 
-def write_log(messages, completion=None, usage=None, tags=[]):
+def write_log(messages, completion=None, usage=None, tags=None):
     assert isinstance(messages, list)
-    assert isinstance(tags, list)
+    assert isinstance(tags, list) or tags is None
     assert isinstance(completion, dict) or completion is None
     assert isinstance(usage, dict) or usage is None
     with open(CHAT_LOG, "a", buffering=1, encoding='utf-8') as fh:
@@ -320,7 +320,7 @@ def write_log(messages, completion=None, usage=None, tags=[]):
             "messages": messages,
             "completion": completion,
             "usage": usage,
-            "tags": tags}) + "\n")
+            "tags": tags or []}) + "\n")
 
 
 def create_initial_log():
