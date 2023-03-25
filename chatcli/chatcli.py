@@ -70,7 +70,7 @@ def chat(quick, continue_conversation, personality, file, retry, stream, search_
             request_messages.append(response)
             conversation(request_messages, stream=stream, tags=tags_to_apply)
     elif quick or not os.isatty(0):
-        question(request_messages, stream=stream, tags=tags_to_apply, multiline=False)
+        conversation(request_messages, stream=stream, tags=tags_to_apply, quick=True, multiline=False)
     else:
         conversation(request_messages, stream=stream, tags=tags_to_apply)
 
@@ -213,25 +213,20 @@ def convert(filename, inplace=False):
             print(json.dumps(converted_data))
 
 
-def conversation(request_messages, tags=None, stream=True, multiline=True):
+def conversation(request_messages, tags=None, stream=True, multiline=True, quick=False):
     if multiline and os.isatty(0):
         click.echo("(Finish input with <Alt-Enter> or <Esc><Enter>)")
 
     while True:
-        response_message = question(request_messages, stream=stream, multiline=multiline, tags=tags)
-        if not response_message:
+        question = prompt(multiline=multiline)
+        if not question:
             break
+        request_messages.append({"role": "user", "content": question})
+        response_message = answer(request_messages, stream=stream, tags=tags)
         request_messages.append(response_message)
 
-def question(request_messages, tags=None, stream=True, multiline=True):
-    question = prompt(multiline=multiline)
-    if os.isatty(0):
-        click.echo("....")
-    if not question:
-        return None
-    request_messages.append({"role": "user", "content": question})
-    return answer(request_messages, stream=stream, tags=tags)
-
+        if quick:
+            break
 
 def prompt(multiline=True):
     if os.isatty(0):
