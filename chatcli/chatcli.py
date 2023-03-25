@@ -331,9 +331,6 @@ def conversation_log():
 
 def search_exchanges(offset, search, tag):
     for idx, exchange in enumerate(reversed(conversation_log()), start=1):
-        # TODO This only exists because my log file still contains entries from earlier versions.
-        if 'request' not in exchange and 'messages' not in exchange:
-            continue
         if offset and idx != offset:
             continue
 
