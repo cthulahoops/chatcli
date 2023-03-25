@@ -189,7 +189,7 @@ def test_current_tag_follows_conversation():
 def test_add_personality():
     runner = CliRunner()
     with runner.isolated_filesystem():
-        result = runner.invoke(cli, ["add", "test_personality"], input="You are a test personality.", catch_exceptions=False)
+        result = runner.invoke(cli, ["add", "-p", "test_personality"], input="You are a test personality.", catch_exceptions=False)
         assert result.exit_code == 0
         result = runner.invoke(cli, ["log"], catch_exceptions=False)
         assert "^test_personality" in result.output

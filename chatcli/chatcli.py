@@ -74,14 +74,27 @@ def chat(quick, continue_conversation, personality, file, retry, stream, search_
     else:
         conversation(request_messages, stream=stream, tags=tags_to_apply)
 
-@cli.command(help="Add new personality.")
-@click.argument('name')
+@cli.command(help="Add a message to a new or existing conversation.")
 @click.option('--multiline/--singleline', default=True)
-def add(name, multiline=True):
+@click.option('-p', '--personality')
+@click.option('--role', type=click.Choice(['system', 'user', 'assistant']), default='system')
+@cli_search_options
+def add(personality, role, multiline, search_options):
+    if any(search_options.values()):
+        exchange = get_logged_exchange(**search_options)
+        messages = exchange['messages']
+    else:
+        messages = []
+
+    tags = []
+    if personality:
+        tags.append("^" + personality)
+
     if multiline and os.isatty(0):
         click.echo("(Finish input with <Alt-Enter> or <Esc><Enter>)")
     description = prompt(multiline=True)
-    write_log(messages=[{"role": "system", "content": description}], tags=["^" + name])
+    messages.append({"role": role, "content": description})
+    write_log(messages=messages, tags=tags)
 
 
 @cli.command(help="List tags.")
