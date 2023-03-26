@@ -13,6 +13,12 @@ from .log import write_log, search_exchanges, get_logged_exchange, conversation_
 
 ENGINE = "gpt-3.5-turbo"
 
+MESSAGE_COLORS = {
+    "user": (186, 85, 211),
+    "system": (100, 150, 200),
+    "assistant": None,
+}
+
 
 @click.group(cls=DefaultGroup, default="chat", default_if_no_args=True)
 def cli():
@@ -95,6 +101,7 @@ def chat(quick, continue_conversation, personality, file, retry, stream, search_
     else:
         conversation(request_messages, stream=stream, tags=tags_to_apply)
 
+
 @cli.command(help="Create initial conversation log.")
 def init():
     try:
@@ -102,6 +109,7 @@ def init():
     except FileExistsError as error:
         click.echo(f"{error}: Conversation log already exists.")
         sys.exit(1)
+
 
 @cli.command(help="Add a message to a new or existing conversation.")
 @click.option("--multiline/--singleline", default=True)
@@ -183,13 +191,8 @@ def show(long, search_options):
     for message in messages:
         prefix = ""
         if message["role"] == "user":
-            color = (186, 85, 211)
             prefix = ">> "
-        elif message["role"] == "system":
-            color = (100, 150, 200)
-        else:
-            color = None
-        click.echo(click.style(prefix + message["content"], fg=color))
+        click.echo(click.style(prefix + message["content"], fg=MESSAGE_COLORS[message["role"]]))
 
 
 @cli.command(help="List all the questions we've asked")
@@ -332,6 +335,7 @@ def main():
     except FileNotFoundError as error:
         click.echo(f"{error}: Chatlog not initialized. Run `chatlog init` first.")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
