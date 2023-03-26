@@ -60,25 +60,25 @@ def find_log():
     return path
 
 
-def search_exchanges(offset, search, tag):
-    for idx, exchange in enumerate(reversed(conversation_log()), start=1):
+def search_conversations(offset, search, tag):
+    for idx, conversation in enumerate(reversed(conversation_log()), start=1):
         if offset and idx != offset:
             continue
 
-        if len(exchange["messages"]) > 1:
-            question = exchange["messages"][-2]["content"]
+        if len(conversation["messages"]) > 1:
+            question = conversation["messages"][-2]["content"]
         else:
-            question = exchange["messages"][-1]["content"]
+            question = conversation["messages"][-1]["content"]
 
         if search and search not in question:
             continue
-        if tag and tag not in exchange.get("tags", []):
+        if tag and tag not in conversation.get("tags", []):
             continue
-        yield idx, exchange
+        yield idx, conversation
 
 
-def get_logged_exchange(offset, search=None, tag=None):
-    return next(search_exchanges(offset, search, tag))[1]
+def get_logged_conversation(offset, search=None, tag=None):
+    return next(search_conversations(offset, search, tag))[1]
 
 
 def convert_log(filename):

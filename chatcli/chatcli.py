@@ -9,7 +9,7 @@ from click_default_group import DefaultGroup
 import openai
 import prompt_toolkit
 import tiktoken
-from .log import write_log, search_exchanges, get_logged_exchange, conversation_log, convert_log, create_initial_log
+from .log import write_log, search_conversations, get_logged_conversation, conversation_log, convert_log, create_initial_log
 
 ENGINE = "gpt-3.5-turbo"
 
@@ -66,8 +66,8 @@ def chat(quick, continue_conversation, personality, file, retry, stream, search_
     elif personality and not search_options["tag"] and not search_options["search"] and not search_options["offset"]:
         search_options["tag"] = "^" + personality
 
-    exchange = get_logged_exchange(**search_options)
-    request_messages = exchange["messages"]
+    conversation = get_logged_conversation(**search_options)
+    request_messages = conversation["messages"]
 
     for filename in file:
         with open(filename, encoding="utf-8") as fh:
@@ -79,7 +79,7 @@ def chat(quick, continue_conversation, personality, file, retry, stream, search_
             }
         )
 
-    tags = exchange.get("tags", [])
+    tags = conversation.get("tags", [])
     if tags and not tags[-1].startswith("^"):
         tags_to_apply = [tags[-1]]
     else:
@@ -89,9 +89,9 @@ def chat(quick, continue_conversation, personality, file, retry, stream, search_
         response = answer(request_messages[:-1], stream=stream, tags=tags_to_apply)
         if not quick:
             request_messages.append(response)
-            conversation(request_messages, stream=stream, tags=tags_to_apply)
+            run_conversation(request_messages, stream=stream, tags=tags_to_apply)
     elif quick or not os.isatty(0):
-        conversation(
+        run_conversation(
             request_messages,
             stream=stream,
             tags=tags_to_apply,
@@ -99,7 +99,7 @@ def chat(quick, continue_conversation, personality, file, retry, stream, search_
             multiline=False,
         )
     else:
-        conversation(request_messages, stream=stream, tags=tags_to_apply)
+        run_conversation(request_messages, stream=stream, tags=tags_to_apply)
 
 
 @cli.command(help="Create initial conversation log.")
@@ -118,8 +118,8 @@ def init():
 @cli_search_options
 def add(personality, role, multiline, search_options):
     if any(search_options.values()):
-        exchange = get_logged_exchange(**search_options)
-        messages = exchange["messages"]
+        conversation = get_logged_conversation(**search_options)
+        messages = conversation["messages"]
     else:
         messages = []
 
@@ -137,38 +137,38 @@ def add(personality, role, multiline, search_options):
 @cli.command(help="List tags.", name="tags")
 def list_tags():
     tags = set()
-    for exchange in conversation_log():
-        for tag in exchange.get("tags", []):
+    for conversation in conversation_log():
+        for tag in conversation.get("tags", []):
             tags.add(tag)
     for tag in sorted(tags):
         click.echo(tag)
 
 
-@cli.command(help="Add tags to an exchange.", name="tag")
+@cli.command(help="Add tags to an conversation.", name="tag")
 @cli_search_options
 @click.argument("tags", nargs=-1)
 def add_tag(tags, search_options):
-    exchange = get_logged_exchange(**search_options)
-    new_tags = [tag for tag in exchange.get("tags", []) if tag not in tags]
+    conversation = get_logged_conversation(**search_options)
+    new_tags = [tag for tag in conversation.get("tags", []) if tag not in tags]
     new_tags.extend(tags)
 
-    write_log(messages=exchange["messages"], tags=new_tags)
+    write_log(messages=conversation["messages"], tags=new_tags)
 
 
-@cli.command(help="Remove tags from an exchange.")
+@cli.command(help="Remove tags from an conversation.")
 @cli_search_options
 @click.argument("tags", nargs=-1)
 def untag(tags, search_options):
-    exchange = get_logged_exchange(**search_options)
-    new_tags = [t for t in exchange.get("tags", []) if t not in tags]
-    write_log(messages=exchange["messages"], tags=new_tags)
+    conversation = get_logged_conversation(**search_options)
+    new_tags = [t for t in conversation.get("tags", []) if t not in tags]
+    write_log(messages=conversation["messages"], tags=new_tags)
 
 
 @cli.command(help="Current tag")
 @cli_search_options
 def show_tag(search_options):
-    exchange = get_logged_exchange(**search_options)
-    tags = exchange.get("tags", [])
+    conversation = get_logged_conversation(**search_options)
+    tags = conversation.get("tags", [])
 
     if tags:
         click.echo(tags[-1])
@@ -182,11 +182,11 @@ def show_tag(search_options):
     help="Show full conversation or just the most recent message.",
 )
 def show(long, search_options):
-    exchange = get_logged_exchange(**search_options)
+    conversation = get_logged_conversation(**search_options)
     if long:
-        messages = exchange["messages"]
+        messages = conversation["messages"]
     else:
-        messages = exchange["messages"][-1:]
+        messages = conversation["messages"][-1:]
 
     for message in messages:
         prefix = ""
@@ -199,15 +199,15 @@ def show(long, search_options):
 @cli_search_options
 @click.option("-l", "--limit", type=int, help="Limit number of results")
 def log(limit, search_options):
-    for offset, exchange in reversed(list(itertools.islice(search_exchanges(**search_options), limit))):
-        messages = exchange["messages"]
+    for offset, conversation in reversed(list(itertools.islice(search_conversations(**search_options), limit))):
+        messages = conversation["messages"]
         if len(messages) > 1:
-            question = exchange["messages"][-2]["content"]
+            question = conversation["messages"][-2]["content"]
         else:
-            question = exchange["messages"][-1]["content"]
+            question = conversation["messages"][-1]["content"]
 
         trimmed_message = question.split("\n", 1)[0][:80]
-        tags = click.style(f"{' '.join(exchange.get('tags', []))}", fg="green")
+        tags = click.style(f"{' '.join(conversation.get('tags', []))}", fg="green")
         click.echo(f"{click.style(f'{offset: 3d}:', fg='blue')} {trimmed_message} {tags}")
 
 
@@ -228,7 +228,7 @@ def convert(filename):
         print(line)
 
 
-def conversation(request_messages, tags=None, stream=True, multiline=True, quick=False):
+def run_conversation(request_messages, tags=None, stream=True, multiline=True, quick=False):
     if multiline and os.isatty(0):
         click.echo("(Finish input with <Alt-Enter> or <Esc><Enter>)")
 
@@ -324,7 +324,7 @@ def cost(tokens):
 
 @cli.command(help="Display number of tokens and token cost.", name="usage")
 def show_usage():
-    tokens = sum(exchange["usage"]["total_tokens"] for exchange in conversation_log() if exchange["usage"])
+    tokens = sum(conversation["usage"]["total_tokens"] for conversation in conversation_log() if conversation["usage"])
     click.echo(f"Tokens: {tokens}")
     click.echo(f"Cost: ${cost(tokens):.2f}")
 
