@@ -9,7 +9,14 @@ from click_default_group import DefaultGroup
 import openai
 import prompt_toolkit
 import tiktoken
-from .log import write_log, search_conversations, get_logged_conversation, conversation_log, convert_log, create_initial_log
+from .log import (
+    write_log,
+    search_conversations,
+    get_logged_conversation,
+    conversation_log,
+    convert_log,
+    create_initial_log,
+)
 
 MODELS = [
     "gpt-4",
