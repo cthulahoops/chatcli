@@ -203,17 +203,31 @@ def show(long, search_options):
 @cli.command(help="List all the questions we've asked")
 @cli_search_options
 @click.option("-l", "--limit", type=int, help="Limit number of results")
-def log(limit, search_options):
+@click.option("-u", "--usage", is_flag=True, help="Show token usage")
+def log(limit, usage, search_options):
     for offset, conversation in reversed(list(itertools.islice(search_conversations(**search_options), limit))):
-        messages = conversation["messages"]
-        if len(messages) > 1:
-            question = conversation["messages"][-2]["content"]
-        else:
+        try:
+            question = find_recent_message(lambda message: message["role"] != "assistant", conversation)["content"]
+        except ValueError:
             question = conversation["messages"][-1]["content"]
-
         trimmed_message = question.split("\n", 1)[0][:80]
-        tags = click.style(f"{' '.join(conversation.get('tags', []))}", fg="green")
-        click.echo(f"{click.style(f'{offset: 3d}:', fg='blue')} {trimmed_message} {tags}")
+
+        fields = []
+        offset = click.style(f"{offset: 4d}:", fg="blue")
+        fields.append(offset)
+
+        if usage:
+            if conversation["usage"]:
+                total_tokens = conversation["usage"]["total_tokens"]
+            else:
+                total_tokens = 0
+            fields.append(f"{total_tokens: 5d}")
+
+        fields.append(trimmed_message)
+        if conversation.get("tags"):
+            fields.append(click.style(f"{' '.join(conversation['tags'])}", fg="green"))
+
+        click.echo(" ".join(fields))
 
 
 @cli.command(
@@ -325,6 +339,13 @@ def answer(request_messages, model, stream=True, tags=None):
 
 def cost(tokens):
     return tokens / 1000 * 0.002
+
+
+def find_recent_message(predicate, conversation):
+    for message in reversed(conversation["messages"]):
+        if predicate(message):
+            return message
+    raise ValueError("No matching message found")
 
 
 @cli.command(help="Display number of tokens and token cost.", name="usage")
