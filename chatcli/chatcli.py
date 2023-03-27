@@ -11,7 +11,10 @@ import prompt_toolkit
 import tiktoken
 from .log import write_log, search_conversations, get_logged_conversation, conversation_log, convert_log, create_initial_log
 
-ENGINE = "gpt-3.5-turbo"
+MODELS = [
+    "gpt-4",
+    "gpt-3.5-turbo",
+]
 
 MESSAGE_COLORS = {
     "user": (186, 85, 211),
@@ -59,8 +62,9 @@ def cli_search_options(command):
 )
 @click.option("-r", "--retry", is_flag=True, help="Retry previous question")
 @click.option("--stream/--sync", default=True, help="Stream or sync mode.")
+@click.option("--model", type=click.Choice(MODELS), default="gpt-4")
 @cli_search_options
-def chat(quick, continue_conversation, personality, file, retry, stream, search_options):
+def chat(quick, continue_conversation, personality, file, retry, stream, model, search_options):
     if (continue_conversation or retry) and not search_options["offset"]:
         search_options["offset"] = 1
     elif personality and not search_options["tag"] and not search_options["search"] and not search_options["offset"]:
@@ -86,20 +90,21 @@ def chat(quick, continue_conversation, personality, file, retry, stream, search_
         tags_to_apply = []
 
     if retry:
-        response = answer(request_messages[:-1], stream=stream, tags=tags_to_apply)
+        response = answer(request_messages[:-1], model, stream=stream, tags=tags_to_apply)
         if not quick:
             request_messages.append(response)
-            run_conversation(request_messages, stream=stream, tags=tags_to_apply)
+            run_conversation(request_messages, model, stream=stream, tags=tags_to_apply)
     elif quick or not os.isatty(0):
         run_conversation(
             request_messages,
+            model,
             stream=stream,
             tags=tags_to_apply,
             quick=True,
             multiline=False,
         )
     else:
-        run_conversation(request_messages, stream=stream, tags=tags_to_apply)
+        run_conversation(request_messages, model, stream=stream, tags=tags_to_apply)
 
 
 @cli.command(help="Create initial conversation log.")
@@ -228,7 +233,7 @@ def convert(filename):
         print(line)
 
 
-def run_conversation(request_messages, tags=None, stream=True, multiline=True, quick=False):
+def run_conversation(request_messages, model, tags=None, stream=True, multiline=True, quick=False):
     if multiline and os.isatty(0):
         click.echo("(Finish input with <Alt-Enter> or <Esc><Enter>)")
 
@@ -237,7 +242,7 @@ def run_conversation(request_messages, tags=None, stream=True, multiline=True, q
         if not question:
             break
         request_messages.append({"role": "user", "content": question})
-        response_message = answer(request_messages, stream=stream, tags=tags)
+        response_message = answer(request_messages, model, stream=stream, tags=tags)
         request_messages.append(response_message)
 
         if quick:
@@ -255,15 +260,15 @@ def prompt(multiline=True):
         return sys.stdin.read().strip()
 
 
-def synchroneous_request(request_messages):
-    completion = openai.ChatCompletion.create(model=ENGINE, messages=request_messages)
+def synchroneous_request(request_messages, model):
+    completion = openai.ChatCompletion.create(model=model, messages=request_messages)
     click.echo(completion["choices"][0]["message"]["content"])
     return completion
 
 
-def stream_request(request_messages):
+def stream_request(request_messages, model):
     completion = {}
-    for chunk in openai.ChatCompletion.create(model=ENGINE, messages=request_messages, stream=True):
+    for chunk in openai.ChatCompletion.create(model=model, messages=request_messages, stream=True):
         if not completion:
             for key, value in chunk.items():
                 completion[key] = value
@@ -285,11 +290,11 @@ def stream_request(request_messages):
     return completion
 
 
-def completion_usage(request_messages, completion):
+def completion_usage(request_messages, model, completion):
     if "usage" in completion:
         return completion["usage"]
 
-    encoding = tiktoken.encoding_for_model(ENGINE)
+    encoding = tiktoken.encoding_for_model(model)
     request_text = " ".join("role: " + x["role"] + " content: " + x["content"] + "\n" for x in request_messages)
     request_tokens = len(encoding.encode(request_text))
     completion_tokens = len(encoding.encode(completion["choices"][0]["message"]["content"]))
@@ -300,18 +305,18 @@ def completion_usage(request_messages, completion):
     }
 
 
-def answer(request_messages, stream=True, tags=None):
+def answer(request_messages, model, stream=True, tags=None):
     if stream:
-        completion = stream_request(request_messages)
+        completion = stream_request(request_messages, model)
     else:
-        completion = synchroneous_request(request_messages)
+        completion = synchroneous_request(request_messages, model)
 
     response_message = completion["choices"][0]["message"]
 
     write_log(
         messages=request_messages + [response_message],
         completion=completion,
-        usage=completion_usage(request_messages, completion),
+        usage=completion_usage(request_messages, model, completion),
         tags=tags,
     )
 
