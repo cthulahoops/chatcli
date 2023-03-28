@@ -321,7 +321,7 @@ def completion_usage(request_messages, model, completion):
     request_tokens = len(encoding.encode(request_text))
     completion_tokens = len(encoding.encode(completion["choices"][0]["message"]["content"]))
     return {
-        "request_tokens": request_tokens,
+        "prompt_tokens": request_tokens,
         "completion_tokens": completion_tokens,
         "total_tokens": request_tokens + completion_tokens,
     }
