@@ -30,6 +30,11 @@ MESSAGE_COLORS = {
     "assistant": None,
 }
 
+USAGE_COSTS = {
+        "gpt-3.5-turbo": {'prompt_tokens': 0.002, 'completion_tokens': 0.002},
+        "gpt-4": {'prompt_tokens': 0.03, 'completion_tokens': 0.06}
+}
+
 
 @click.group(cls=DefaultGroup, default="chat", default_if_no_args=True)
 def cli():
@@ -212,7 +217,8 @@ def show(long, search_options):
 @cli_search_options
 @click.option("-l", "--limit", type=int, help="Limit number of results")
 @click.option("-u", "--usage", is_flag=True, help="Show token usage")
-def log(limit, usage, search_options):
+@click.option("--cost", is_flag=True, help="Show token cost")
+def log(limit, usage, cost, search_options):
     for offset, conversation in reversed(list(itertools.islice(search_conversations(**search_options), limit))):
         try:
             question = find_recent_message(lambda message: message["role"] != "assistant", conversation)["content"]
@@ -230,6 +236,9 @@ def log(limit, usage, search_options):
             else:
                 total_tokens = 0
             fields.append(f"{total_tokens: 5d}")
+
+        if cost:
+            fields.append(f"${conversation_cost(conversation): 2.3f}")
 
         fields.append(trimmed_message)
         if conversation.get("tags"):
@@ -350,8 +359,16 @@ def answer(request_messages, model, stream=True, tags=None):
     return response_message
 
 
-def cost(tokens):
-    return tokens / 1000 * 0.002
+def conversation_cost(conversation):
+    if not conversation['usage']:
+        return 0
+    model = conversation['completion']['model']
+    if model not in USAGE_COSTS:
+        model = '-'.join(model.split('-')[:-1])
+    model_price = USAGE_COSTS[model]
+
+    usage = conversation['usage']
+    return model_price['prompt_tokens'] * usage['prompt_tokens'] / 1000 + model_price['completion_tokens'] * usage['completion_tokens'] / 1000
 
 
 def find_recent_message(predicate, conversation):
@@ -364,8 +381,10 @@ def find_recent_message(predicate, conversation):
 @cli.command(help="Display number of tokens and token cost.", name="usage")
 def show_usage():
     tokens = sum(conversation["usage"]["total_tokens"] for conversation in conversation_log() if conversation["usage"])
+
+    total_cost = sum(conversation_cost(conversation) for conversation in conversation_log())
     click.echo(f"Tokens: {tokens}")
-    click.echo(f"Cost: ${cost(tokens):.2f}")
+    click.echo(f"Cost: ${total_cost:.2f}")
 
 
 def main():
