@@ -2,7 +2,7 @@ from unittest.mock import patch
 import pytest
 import json
 from click.testing import CliRunner
-from chatcli.chatcli import cli
+from chatcli.chatcli import cli, find_recent_message
 
 
 @pytest.fixture(autouse=True)
@@ -230,3 +230,21 @@ def test_convert_is_noop():
         assert [json.loads(x) for x in result.output.splitlines()] == [
             json.loads(x) for x in open("chatlog.log", encoding="utf-8").read().splitlines()
         ]
+
+def test_find_recent_message():
+    conversation = {
+        "messages": [
+            {"sender": "assistant", "message": "???"},
+            {"sender": "user", "message": "hello"},
+            {"sender": "assistant", "message": "hi"},
+            {"sender": "user", "message": "how are you?"}
+        ]
+    }
+
+    def predicate(msg):
+        return msg["sender"] == "assistant"
+
+    result = find_recent_message(predicate, conversation)
+    expected = {"sender": "assistant", "message": "hi"}
+
+    assert result == expected
