@@ -17,6 +17,7 @@ from .log import (
     convert_log,
     create_initial_log,
 )
+from .plugins import evaluate_code_block
 
 MODELS = [
     "gpt-4",
@@ -340,6 +341,11 @@ def answer(request_messages, model, stream=True, tags=None):
         usage=completion_usage(request_messages, model, completion),
         tags=tags,
     )
+
+    code_response = evaluate_code_block(response_message["content"])
+    if code_response:
+        print(code_response)
+        return answer(request_messages + [response_message, {"role": "user", "content": code_response}], model, stream=stream, tags=tags)
 
     return response_message
 
