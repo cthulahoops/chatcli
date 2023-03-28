@@ -4,6 +4,8 @@ import sys
 import itertools
 import functools
 import textwrap
+import datetime
+import dateutil.parser
 import click
 from click_default_group import DefaultGroup
 import openai
@@ -379,10 +381,18 @@ def find_recent_message(predicate, conversation):
 
 
 @cli.command(help="Display number of tokens and token cost.", name="usage")
-def show_usage():
-    tokens = sum(conversation["usage"]["total_tokens"] for conversation in conversation_log() if conversation["usage"])
+@click.option("--today", is_flag=True, help="Show usage for today only.")
+def show_usage(today):
+    conversations = conversation_log()
 
-    total_cost = sum(conversation_cost(conversation) for conversation in conversation_log())
+    def is_today(conversation):
+        return dateutil.parser.parse(conversation["timestamp"]).date() == datetime.date.today()
+
+    if today:
+        conversations = [c for c in conversations if is_today(c)]
+    tokens = sum(conversation["usage"]["total_tokens"] for conversation in conversations if conversation["usage"])
+
+    total_cost = sum(conversation_cost(conversation) for conversation in conversations)
     click.echo(f"Tokens: {tokens}")
     click.echo(f"Cost: ${total_cost:.2f}")
 
