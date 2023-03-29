@@ -9,9 +9,10 @@ This command is in early development and the interface and log file format are
 unstable and changing rapidly. I'd love to get feedback on what would make this
 tool more useful.
 
-WARNING: This version supports EVALUATE blocks that allow GPT to evaluate code,
-but it's not documented and there's no way to control it yet. It should be safe,
-but use at your own risk!
+WARNING: This version supports EVALUATE blocks that allow GPT to evaluate code.
+This should only work if the pyeval plugin is enabled, either using "--plugin pyeval"
+or "--personality pyeval". There is no sandboxing, so GPT can run any code it
+likes if you enable this!
 
 ## Installation
 
