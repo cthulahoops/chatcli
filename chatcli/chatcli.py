@@ -78,8 +78,9 @@ def cli_search_options(command):
 @click.option("-r", "--retry", is_flag=True, help="Retry previous question")
 @click.option("--stream/--sync", default=True, help="Stream or sync mode.")
 @click.option("--model", type=click.Choice(MODELS), default="gpt-3.5-turbo")
+@click.option("--plugin", "additional_plugins", multiple=True, help="Load a plugin.")
 @cli_search_options
-def chat(quick, continue_conversation, personality, file, retry, stream, model, search_options):
+def chat(quick, continue_conversation, personality, file, retry, stream, model, additional_plugins, search_options):
     if (continue_conversation or retry) and not search_options["offset"]:
         search_options["offset"] = 1
     elif personality and not search_options["tag"] and not search_options["search"] and not search_options["offset"]:
@@ -105,6 +106,7 @@ def chat(quick, continue_conversation, personality, file, retry, stream, model, 
         tags_to_apply = []
 
     plugins = conversation["plugins"]
+    plugins.extend(additional_plugins)
 
     if retry:
         response = answer(request_messages[:-1], model, plugins, stream=stream, tags=tags_to_apply)
