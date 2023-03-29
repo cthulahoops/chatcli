@@ -104,22 +104,25 @@ def chat(quick, continue_conversation, personality, file, retry, stream, model, 
     else:
         tags_to_apply = []
 
+    plugins = conversation["plugins"]
+
     if retry:
-        response = answer(request_messages[:-1], model, stream=stream, tags=tags_to_apply)
+        response = answer(request_messages[:-1], model, plugins, stream=stream, tags=tags_to_apply)
         if not quick:
             request_messages.append(response)
-            run_conversation(request_messages, model, stream=stream, tags=tags_to_apply)
+            run_conversation(request_messages, model, plugins, stream=stream, tags=tags_to_apply)
     elif quick or not os.isatty(0):
         run_conversation(
             request_messages,
             model,
+            plugins,
             stream=stream,
             tags=tags_to_apply,
             quick=True,
             multiline=False,
         )
     else:
-        run_conversation(request_messages, model, stream=stream, tags=tags_to_apply)
+        run_conversation(request_messages, model, plugins, stream=stream, tags=tags_to_apply)
 
 
 @cli.command(help="Create initial conversation log.")
@@ -135,8 +138,9 @@ def init():
 @click.option("--multiline/--singleline", default=True)
 @click.option("-p", "--personality")
 @click.option("--role", type=click.Choice(["system", "user", "assistant"]), default="system")
+@click.option("--plugin", multiple="True", help="Activate plugins.")
 @cli_search_options
-def add(personality, role, multiline, search_options):
+def add(personality, role, plugin, multiline, search_options):
     if any(search_options.values()):
         conversation = get_logged_conversation(**search_options)
         messages = conversation["messages"]
@@ -151,7 +155,7 @@ def add(personality, role, multiline, search_options):
         click.echo("(Finish input with <Alt-Enter> or <Esc><Enter>)")
     description = prompt(multiline=True)
     messages.append({"role": role, "content": description})
-    write_log(messages=messages, tags=tags)
+    write_log(messages=messages, tags=tags, plugins=plugin)
 
 
 @cli.command(help="List tags.", name="tags")
@@ -220,7 +224,8 @@ def show(long, search_options):
 @click.option("-l", "--limit", type=int, help="Limit number of results")
 @click.option("-u", "--usage", is_flag=True, help="Show token usage")
 @click.option("--cost", is_flag=True, help="Show token cost")
-def log(limit, usage, cost, search_options):
+@click.option("--plugins", is_flag=True, help="Show enabled plugins")
+def log(limit, usage, cost, plugins, search_options):
     for offset, conversation in reversed(list(itertools.islice(search_conversations(**search_options), limit))):
         try:
             question = find_recent_message(lambda message: message["role"] != "assistant", conversation)["content"]
@@ -244,21 +249,22 @@ def log(limit, usage, cost, search_options):
 
         fields.append(trimmed_message)
         if conversation.get("tags"):
-            fields.append(click.style(f"{' '.join(conversation['tags'])}", fg="green"))
+            fields.append(click.style(f"{','.join(conversation['tags'])}", fg="green"))
+
+        if plugins:
+            fields.append(f"{','.join(conversation['plugins'])}")
 
         click.echo(" ".join(fields))
 
 
 @cli.command(
-    help=textwrap.dedent(
-        """Convert old chatlog format to new format.
+    help="""Convert old chatlog format to new format.
     Recommended usage:
 
     \b
     cp -i .chatcli.log .chatcli.log.bak
     chatlog convert .chatcli.log.bak > .chatcli.log
     """
-    )
 )
 @click.argument("filename", type=click.Path(exists=True))
 def convert(filename):
@@ -266,7 +272,7 @@ def convert(filename):
         print(line)
 
 
-def run_conversation(request_messages, model, tags=None, stream=True, multiline=True, quick=False):
+def run_conversation(request_messages, model, plugins, tags=None, stream=True, multiline=True, quick=False):
     if multiline and os.isatty(0):
         click.echo("(Finish input with <Alt-Enter> or <Esc><Enter>)")
 
@@ -275,7 +281,7 @@ def run_conversation(request_messages, model, tags=None, stream=True, multiline=
         if not question:
             break
         request_messages.append({"role": "user", "content": question})
-        response_message = answer(request_messages, model, stream=stream, tags=tags)
+        response_message = answer(request_messages, model, plugins, stream=stream, tags=tags)
         request_messages.append(response_message)
 
         if quick:
@@ -338,7 +344,7 @@ def completion_usage(request_messages, model, completion):
     }
 
 
-def answer(request_messages, model, stream=True, tags=None):
+def answer(request_messages, model, plugins, stream=True, tags=None):
     if stream:
         completion = stream_request(request_messages, model)
     else:
@@ -351,26 +357,37 @@ def answer(request_messages, model, stream=True, tags=None):
         completion=completion,
         usage=completion_usage(request_messages, model, completion),
         tags=tags,
+        plugins=plugins,
     )
 
-    code_response = evaluate_code_block(response_message["content"])
-    if code_response:
-        print(code_response)
-        return answer(request_messages + [response_message, {"role": "user", "content": code_response}], model, stream=stream, tags=tags)
+    if 'pyeval' in plugins:
+        code_response = evaluate_code_block(response_message["content"])
+        if code_response:
+            print(code_response)
+            return answer(
+                request_messages + [response_message, {"role": "user", "content": "this is: \n" + code_response}],
+                model,
+                plugins,
+                stream=stream,
+                tags=tags,
+            )
 
     return response_message
 
 
 def conversation_cost(conversation):
-    if not conversation['usage']:
+    if not conversation["usage"]:
         return 0
-    model = conversation['completion']['model']
+    model = conversation["completion"]["model"]
     if model not in USAGE_COSTS:
-        model = '-'.join(model.split('-')[:-1])
+        model = "-".join(model.split("-")[:-1])
     model_price = USAGE_COSTS[model]
 
-    usage = conversation['usage']
-    return model_price['prompt_tokens'] * usage['prompt_tokens'] / 1000 + model_price['completion_tokens'] * usage['completion_tokens'] / 1000
+    usage = conversation["usage"]
+    return (
+        model_price["prompt_tokens"] * usage["prompt_tokens"] / 1000
+        + model_price["completion_tokens"] * usage["completion_tokens"] / 1000
+    )
 
 
 def find_recent_message(predicate, conversation):

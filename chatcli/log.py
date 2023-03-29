@@ -142,9 +142,9 @@ def convert_log(filename):
                 messages = data["messages"]
                 usage = data["usage"]
 
-            if usage and 'request_tokens' in usage:
-                usage['prompt_tokens'] = usage['request_tokens']
-                del usage['request_tokens']
+            if usage and "request_tokens" in usage:
+                usage["prompt_tokens"] = usage["request_tokens"]
+                del usage["request_tokens"]
 
             tags = data.get("tags", [])
             completion = data.get("completion") or data.get("response")

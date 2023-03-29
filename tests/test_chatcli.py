@@ -7,16 +7,22 @@ from chatcli.chatcli import cli, find_recent_message
 
 @pytest.fixture(autouse=True)
 def fake_assistant(mocker):
+    def ai(message):
+        if message.startswith('evaluate: '):
+            message = message.replace('evaluate: ', '')
+            return f"EVALUATE:\n```python\n{message}```"
+        return message.upper()
+
     def streaming_ai(model, message):
         yield {"model": model, "choices": [{"delta": {"role": "assistant"}, "index": 0}]}
-        for word in message.split():
-            yield {"choices": [{"delta": {"content": " " + word.upper()}, "index": 0}]}
+        for word in ai(message).split(" "):
+            yield {"choices": [{"delta": {"content": " " + word}, "index": 0}]}
 
     def advanced_ai(model, messages, stream=False):
         if stream:
             return (x for x in streaming_ai(model, messages[-1]["content"]))
         return {
-            "choices": [{"message": {"role": "assistant", "content": messages[-1]["content"].upper()}}],
+            "choices": [{"message": {"role": "assistant", "content": ai(messages[-1]["content"])}}],
             "usage": {"total_tokens": 41},
         }
 
@@ -218,6 +224,34 @@ def test_add_personality():
         result = runner.invoke(cli, ["log"], catch_exceptions=False)
         assert "^test_personality" in result.output
 
+def test_add_personality_with_pyeval_and_evaluate():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["init"], catch_exceptions=False)
+        result = runner.invoke(
+            cli, ["add", "-p", "test_personality", "--plugin", "pyeval"], input="You are a test personality.", catch_exceptions=False
+        )
+        assert result.exit_code == 0
+        result = runner.invoke(cli, ["log", "--plugins"], catch_exceptions=False)
+        assert "^test_personality" in result.output
+
+def test_default_personality_cannot_evaluate():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["init"], catch_exceptions=False)
+        result = runner.invoke(cli, ["chat"], input="evaluate: 6 * 7", catch_exceptions=False)
+
+        assert result.exit_code == 0
+        assert "42" not in result.output
+
+def test_pyeval():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["init"], catch_exceptions=False)
+        result = runner.invoke(cli, ["chat", "-p", "pyeval"], input="evaluate: 6 * 7", catch_exceptions=False)
+
+        assert result.exit_code == 0
+        assert "42" in result.output
 
 def test_convert_is_noop():
     runner = CliRunner()
