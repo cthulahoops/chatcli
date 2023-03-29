@@ -19,7 +19,6 @@ def extract_blocks(response_text):
 
 def capture_output(code):
     buffer = io.StringIO()
-    sys.stdout = buffer
 
     with contextlib.redirect_stdout(buffer):
         global_scope = globals()
@@ -37,7 +36,6 @@ def capture_output(code):
             print(traceback.format_exc())
             print(f"Error: {e}")
 
-    sys.stdout = sys.__stdout__
     return buffer.getvalue().strip()
 
 
