@@ -13,11 +13,12 @@ You never output anything that does not belong in the commit message.""",
 CHAT_LOG = os.environ.get("CHATCLI_LOGFILE", ".chatcli.log")
 
 
-def write_log(messages, completion=None, usage=None, tags=None, path=None):
+def write_log(messages, completion=None, usage=None, tags=None, plugins=None, path=None):
     assert isinstance(messages, list)
     assert isinstance(tags, list) or tags is None
     assert isinstance(completion, dict) or completion is None
     assert isinstance(usage, dict) or usage is None
+    assert isinstance(plugins, list) or plugins is None
     timestamp = datetime.datetime.now().isoformat()
 
     path = path or find_log()
@@ -31,6 +32,7 @@ def write_log(messages, completion=None, usage=None, tags=None, path=None):
                     "usage": usage,
                     "tags": tags or [],
                     "timestamp": timestamp,
+                    "plugins": plugins or [],
                 }
             )
             + "\n"
@@ -130,5 +132,6 @@ def convert_log(filename):
                 "tags": tags,
                 "usage": usage,
                 "timestamp": timestamp,
+                "plugins": data.get("plugins", []),
             }
             yield json.dumps(converted_data)
