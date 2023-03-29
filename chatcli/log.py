@@ -2,12 +2,44 @@ import os
 import os.path
 import datetime
 import json
+from textwrap import dedent
 
 INITIAL_PERSONALITIES = {
-    "concise": "You are a helpful, expert linux user and programmer. You give concise answers, providing code where possible.",
-    "code": "You only answer questions with a single example code block only, and no other explanations.",
-    "commit": """You generate commit messages from diffs. Every line of commit message should be less than eighty characters.
-You never output anything that does not belong in the commit message.""",
+    "concise": {
+        "content": "You are a helpful, expert linux user and programmer. You give concise answers, providing code where possible.",
+    },
+    "code": {"content": "You only answer questions with a single example code block only, and no other explanations."},
+    "commit": {
+        "content": """
+                You generate commit messages from diffs. Every line of commit message should be less than eighty characters.
+                You never output anything that does not belong in the commit message.
+                """,
+    },
+    "pyeval": {
+        "plugins": ["pyeval"],
+        "content": """
+                You can evaluate code by returning any python code in a code block with the line "EVALUATE:" before it.
+                Do you not attempt to compute expressions, or the results of python code yourself, instead use an EVALUATE block.
+                You will get the result of running the code you provide in a result block.
+
+                For example:
+
+                EVALUATE:
+                ```
+                print(4 + 5)
+                ```
+
+                And you would then receive
+
+                RESULT:
+                ```
+                9
+                ```
+                as the next message.
+
+                Use the result to help you answer the question.
+            """,
+    },
 }
 
 CHAT_LOG = os.environ.get("CHATCLI_LOGFILE", ".chatcli.log")
@@ -18,7 +50,7 @@ def write_log(messages, completion=None, usage=None, tags=None, plugins=None, pa
     assert isinstance(tags, list) or tags is None
     assert isinstance(completion, dict) or completion is None
     assert isinstance(usage, dict) or usage is None
-    assert isinstance(plugins, list) or plugins is None
+    assert isinstance(plugins, (list, tuple)) or plugins is None
     timestamp = datetime.datetime.now().isoformat()
 
     path = path or find_log()
@@ -44,7 +76,12 @@ def create_initial_log():
         raise FileExistsError(CHAT_LOG)
 
     for key, value in INITIAL_PERSONALITIES.items():
-        write_log(messages=[{"role": "system", "content": value}], tags=["^" + key], path=CHAT_LOG)
+        write_log(
+            messages=[{"role": "system", "content": dedent(value["content"].strip())}],
+            tags=["^" + key],
+            plugins=value.get("plugins"),
+            path=CHAT_LOG,
+        )
 
 
 def conversation_log():
