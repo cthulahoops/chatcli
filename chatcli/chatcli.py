@@ -33,8 +33,8 @@ MESSAGE_COLORS = {
 }
 
 USAGE_COSTS = {
-        "gpt-3.5-turbo": {'prompt_tokens': 0.002, 'completion_tokens': 0.002},
-        "gpt-4": {'prompt_tokens': 0.03, 'completion_tokens': 0.06}
+    "gpt-3.5-turbo": {"prompt_tokens": 0.002, "completion_tokens": 0.002},
+    "gpt-4": {"prompt_tokens": 0.03, "completion_tokens": 0.06},
 }
 
 
@@ -77,7 +77,7 @@ def cli_search_options(command):
 )
 @click.option("-r", "--retry", is_flag=True, help="Retry previous question")
 @click.option("--stream/--sync", default=True, help="Stream or sync mode.")
-@click.option("--model", type=click.Choice(MODELS), default="gpt-4")
+@click.option("--model", type=click.Choice(MODELS), default="gpt-3.5-turbo")
 @cli_search_options
 def chat(quick, continue_conversation, personality, file, retry, stream, model, search_options):
     if (continue_conversation or retry) and not search_options["offset"]:
