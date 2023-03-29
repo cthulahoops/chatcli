@@ -255,8 +255,8 @@ def log(limit, usage, cost, search_options):
     Recommended usage:
 
     \b
-    cp -i chatlog.json chatlog.json.bak
-    chatlog convert chatlog.json.bak > chatlog.json
+    cp -i .chatcli.log .chatcli.log.bak
+    chatlog convert .chatcli.log.bak > .chatcli.log
     """
     )
 )

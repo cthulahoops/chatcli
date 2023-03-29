@@ -10,7 +10,7 @@ INITIAL_PERSONALITIES = {
 You never output anything that does not belong in the commit message.""",
 }
 
-CHAT_LOG = os.environ.get("CHATCLI_LOGFILE", "chatlog.log")
+CHAT_LOG = os.environ.get("CHATCLI_LOGFILE", ".chatcli.log")
 
 
 def write_log(messages, completion=None, usage=None, tags=None, path=None):
