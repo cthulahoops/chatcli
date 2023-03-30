@@ -4,6 +4,7 @@ import sys
 import contextlib
 import ast
 import traceback
+import json
 from duckduckgo_search import ddg
 
 
@@ -48,7 +49,7 @@ def exec_python(code):
 
 
 def exec_duckduckgo(search_term):
-    return str(ddg(search_term, max_results=5))
+    return json.dumps(ddg(search_term, max_results=5))
 
 def format_block(output):
     formatted_output = f"RESULT:\n```\n{output}\n```"
