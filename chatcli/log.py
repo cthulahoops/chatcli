@@ -40,6 +40,16 @@ INITIAL_PERSONALITIES = {
                 Use the result to help you answer the question.
             """,
     },
+    "search":{
+        "plugins":["search"],
+        "content": """
+            You can search the internet by returning query in the form SEARCH("query")
+            Don't refuse to answer questions about current events, but use the SEARCH command instead.         
+            You will get the result of running the search you provide in a result block.
+            Use the result to help you answer the question.
+        """,
+
+    }
 }
 
 CHAT_LOG = os.environ.get("CHATCLI_LOGFILE", ".chatcli.log")
@@ -71,8 +81,9 @@ def write_log(messages, completion=None, usage=None, tags=None, plugins=None, pa
         )
 
 
-def create_initial_log():
-    if os.path.exists(CHAT_LOG):
+def create_initial_log(reinit):
+
+    if not reinit and os.path.exists(CHAT_LOG):
         raise FileExistsError(CHAT_LOG)
 
     for key, value in INITIAL_PERSONALITIES.items():

@@ -4,16 +4,25 @@ import sys
 import contextlib
 import ast
 import traceback
+from duckduckgo_search import ddg
 
-def evaluate_code_block(response_text):
-    blocks = extract_blocks(response_text)
+
+
+def evaluate_plugins(response_text, plugins):
+    block_patterns = {"pyeval": r"EVALUATE:\n+```(?:python)?\n(.*?)```", 
+                    "search":r'SEARCH\((.*)\)'}
+    active_plugin = plugins[0]
+    blocks = extract_blocks(response_text, block_patterns[active_plugin])
     if not blocks:
         return None
-    output = exec_python(blocks[0])
+    if active_plugin == "pyeval":
+        output = exec_python(blocks[0])
+    elif active_plugin == "search":
+        output = exec_duckduckgo(blocks[0])
     return format_block(output)
 
-def extract_blocks(response_text):
-    block_pattern = r"EVALUATE:\n+```(?:python)?\n(.*?)```"
+def extract_blocks(response_text, block_pattern):
+
     matches = re.findall(block_pattern, response_text, re.DOTALL)
     return matches
 
@@ -38,10 +47,13 @@ def exec_python(code):
     return buffer.getvalue().strip()
 
 
+def exec_duckduckgo(search_term):
+    return str(ddg(search_term, max_results=5))
+
 def format_block(output):
     formatted_output = f"RESULT:\n```\n{output}\n```"
     return formatted_output
 
 if __name__ == '__main__':
     input_text = sys.stdin.read()
-    print(evaluate_code_block(input_text))
+    print(evaluate_plugins(input_text, ["search"]))
