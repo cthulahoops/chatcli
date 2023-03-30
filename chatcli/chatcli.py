@@ -368,9 +368,9 @@ def answer(request_messages, model, plugins, stream=True, tags=None):
         plugin_response = evaluate_plugins(response_message["content"], plugins)
 
         if plugin_response:
-            click.echo(click.style(plugin_response, fg="#bbaa33"))
+            click.echo(click.style(plugin_response, fg=(200, 180, 90)))
             return answer(
-                request_messages + [response_message, {"role": "user", "content": code_response}],
+                request_messages + [response_message, {"role": "user", "content": plugin_response}],
                 model,
                 plugins,
                 stream=stream,
