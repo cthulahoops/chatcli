@@ -365,13 +365,12 @@ def answer(request_messages, model, plugins, stream=True, tags=None):
     )
 
     if plugins:
-   
-        code_response = evaluate_plugins(response_message["content"], plugins)
- 
-        if code_response:
-            print(code_response)
+        plugin_response = evaluate_plugins(response_message["content"], plugins)
+
+        if plugin_response:
+            click.echo(click.style(plugin_response, fg="#bbaa33"))
             return answer(
-                request_messages + [response_message, {"role": "user", "content": "this is: \n" + code_response}],
+                request_messages + [response_message, {"role": "user", "content": code_response}],
                 model,
                 plugins,
                 stream=stream,
