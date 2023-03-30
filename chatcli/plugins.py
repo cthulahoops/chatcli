@@ -9,15 +9,15 @@ def evaluate_code_block(response_text):
     blocks = extract_blocks(response_text)
     if not blocks:
         return None
-    output = capture_output(blocks[0])
+    output = exec_python(blocks[0])
     return format_block(output)
 
 def extract_blocks(response_text):
-    block_pattern = r"EVALUATE:\n```(?:python)?\n(.*?)```"
+    block_pattern = r"EVALUATE:\n+```(?:python)?\n(.*?)```"
     matches = re.findall(block_pattern, response_text, re.DOTALL)
     return matches
 
-def capture_output(code):
+def exec_python(code):
     buffer = io.StringIO()
 
     with contextlib.redirect_stdout(buffer):
@@ -32,9 +32,8 @@ def capture_output(code):
                     print(result)
             else:
                 exec(code, global_scope)
-        except Exception as e:
+        except Exception: # pylint: disable=broad-except
             print(traceback.format_exc())
-            print(f"Error: {e}")
 
     return buffer.getvalue().strip()
 
@@ -45,5 +44,4 @@ def format_block(output):
 
 if __name__ == '__main__':
     input_text = sys.stdin.read()
-    output = evaluate_code_block(input_text)
-    print(output)
+    print(evaluate_code_block(input_text))
