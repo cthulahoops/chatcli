@@ -11,6 +11,7 @@ from click_default_group import DefaultGroup
 import openai
 import prompt_toolkit
 import tiktoken
+
 from .log import (
     write_log,
     search_conversations,
@@ -19,7 +20,7 @@ from .log import (
     convert_log,
     create_initial_log,
 )
-from .plugins import evaluate_code_block
+from .plugins import evaluate_plugins
 
 MODELS = [
     "gpt-4",
@@ -128,9 +129,10 @@ def chat(quick, continue_conversation, personality, file, retry, stream, model, 
 
 
 @cli.command(help="Create initial conversation log.")
-def init():
+@click.option("-r","--reinit", is_flag=True, help="re-initialize the personalities to default values")
+def init(reinit):
     try:
-        create_initial_log()
+        create_initial_log(reinit)
     except FileExistsError as error:
         click.echo(f"{error}: Conversation log already exists.")
         sys.exit(1)
@@ -362,8 +364,10 @@ def answer(request_messages, model, plugins, stream=True, tags=None):
         plugins=plugins,
     )
 
-    if 'pyeval' in plugins:
-        code_response = evaluate_code_block(response_message["content"])
+    if plugins:
+   
+        code_response = evaluate_plugins(response_message["content"], plugins)
+ 
         if code_response:
             print(code_response)
             return answer(
