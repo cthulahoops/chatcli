@@ -12,8 +12,6 @@ import openai
 import prompt_toolkit
 import tiktoken
 
-openai.api_key = "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"
-
 from .log import (
     write_log,
     search_conversations,
