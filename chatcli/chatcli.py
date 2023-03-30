@@ -129,7 +129,7 @@ def chat(quick, continue_conversation, personality, file, retry, stream, model, 
 
 
 @cli.command(help="Create initial conversation log.")
-@click.option("-r","--reinit", is_flag=True, help="re-initialize the personalities to default values")
+@click.option("-r", "--reinit", is_flag=True, help="re-initialize the personalities to default values")
 def init(reinit):
     try:
         create_initial_log(reinit)

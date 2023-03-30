@@ -40,16 +40,22 @@ INITIAL_PERSONALITIES = {
                 Use the result to help you answer the question.
             """,
     },
-    "search":{
-        "plugins":["search"],
+    "search": {
+        "plugins": ["search"],
         "content": """
             You can search the internet by returning query in the form SEARCH("query")
-            Don't refuse to answer questions about current events, but use the SEARCH command instead.         
-            You will get the result of running the search you provide in a result block.
-            Use the result to help you answer the question.
-        """,
+            Whenever you are asked a question, you should first search the internet for an answer.
+            Search the internet by using the search command:
 
-    }
+            For example:
+
+            SEARCH("president of the united states")
+
+            Use the result to help you answer the question.
+
+            Run additional queries as necessary to answer further questions.
+        """,
+    },
 }
 
 CHAT_LOG = os.environ.get("CHATCLI_LOGFILE", ".chatcli.log")
@@ -82,7 +88,6 @@ def write_log(messages, completion=None, usage=None, tags=None, plugins=None, pa
 
 
 def create_initial_log(reinit):
-
     if not reinit and os.path.exists(CHAT_LOG):
         raise FileExistsError(CHAT_LOG)
 
