@@ -13,7 +13,7 @@ def test_extract_block():
     There could be more text after the block.
     """)
 
-    blocks = extract_blocks(response_text)
+    blocks = extract_blocks(response_text, 'pyeval')
 
     assert blocks == ['print("3 + 4")\n']
 

@@ -8,10 +8,11 @@ import json
 import duckduckgo_search
 
 
+BLOCK_PATTERNS = {"pyeval": r"EVALUATE:\n+```(?:python)?\n(.*?)```", "search": r"SEARCH\((.*)\)"}
+
 def evaluate_plugins(response_text, plugins):
-    block_patterns = {"pyeval": r"EVALUATE:\n+```(?:python)?\n(.*?)```", "search": r"SEARCH\((.*)\)"}
     active_plugin = plugins[0]
-    blocks = extract_blocks(response_text, block_patterns[active_plugin])
+    blocks = extract_blocks(response_text, active_plugin)
     if not blocks:
         return None
     if active_plugin == "pyeval":
@@ -24,7 +25,8 @@ def evaluate_plugins(response_text, plugins):
     return format_block(output)
 
 
-def extract_blocks(response_text, block_pattern):
+def extract_blocks(response_text, plugin):
+    block_pattern = BLOCK_PATTERNS[plugin]
     matches = re.findall(block_pattern, response_text, re.DOTALL)
     return matches
 
