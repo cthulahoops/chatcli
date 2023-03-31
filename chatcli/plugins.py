@@ -5,7 +5,7 @@ import contextlib
 import ast
 import traceback
 import json
-from duckduckgo_search import ddg
+import duckduckgo_search
 
 
 def evaluate_plugins(response_text, plugins):
@@ -17,7 +17,10 @@ def evaluate_plugins(response_text, plugins):
     if active_plugin == "pyeval":
         output = exec_python(blocks[0])
     elif active_plugin == "search":
-        output = exec_duckduckgo(blocks[0])
+        search_term = blocks[0].strip()
+        if search_term[0] in "\"'":
+            search_term = ast.literal_eval(search_term)
+        output = exec_duckduckgo(search_term)
     return format_block(output)
 
 
@@ -48,7 +51,7 @@ def exec_python(code):
 
 
 def exec_duckduckgo(search_term):
-    return json.dumps(ddg(search_term, max_results=5))
+    return json.dumps(duckduckgo_search.ddg(search_term, max_results=5))
 
 
 def format_block(output):
