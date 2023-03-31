@@ -369,7 +369,7 @@ def answer(request_messages, model, plugins, stream=True, tags=None):
 
         if plugin_response:
             request_messages.append(response_message)
-            request_messages.append({"role": "assistant", "content": plugin_response})
+            request_messages.append({"role": "user", "content": plugin_response})
             click.echo(click.style(plugin_response, fg=(200, 180, 90)))
             return answer(
                 request_messages,
