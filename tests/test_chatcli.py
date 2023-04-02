@@ -2,7 +2,7 @@ from unittest.mock import patch
 import pytest
 import json
 from click.testing import CliRunner
-from chatcli.chatcli import cli, find_recent_message
+from chatcli_gpt.chatcli import cli, find_recent_message
 
 
 @pytest.fixture(autouse=True)
@@ -26,7 +26,7 @@ def fake_assistant(mocker):
             "usage": {"total_tokens": 41},
         }
 
-    mocker.patch("chatcli.chatcli.openai.ChatCompletion.create", advanced_ai)
+    mocker.patch("chatcli_gpt.chatcli.openai.ChatCompletion.create", advanced_ai)
 
 
 def test_chat_code():

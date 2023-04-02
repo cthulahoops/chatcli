@@ -1,5 +1,5 @@
 from textwrap import dedent
-from chatcli.plugins import extract_blocks, exec_python
+from chatcli_gpt.plugins import extract_blocks, exec_python
 
 def test_extract_block():
     response_text = dedent("""

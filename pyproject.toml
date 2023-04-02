@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "chatcli"
-version = "0.3.0"
-description = ""
+name = "chatcli-gpt"
+version = "0.3.1"
+description = "A command line interface for interacting with GPT-3. It's orientated around an append only chat log so you get a complete history of your conversations."
 authors = ["Adam Kelly <adam@cthulahoops.org>"]
 
 [tool.poetry.dependencies]
@@ -16,6 +16,7 @@ pytest-mock = "^3.10.0"
 tiktoken = "^0.3.2"
 python-dateutil = "^2.8.2"
 duckduckgo-search = "^2.8.5"
+pillow = "^9.4.0"
 
 [tool.poetry.dev-dependencies]
 
@@ -24,7 +25,7 @@ black = "^23.1.0"
 pylint = "^2.17.1"
 
 [tool.poetry.scripts]
-chatcli = "chatcli.chatcli:main"
+chatcli = "chatcli_gpt.chatcli:main"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
