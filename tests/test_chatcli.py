@@ -1,3 +1,4 @@
+import os
 from unittest.mock import patch
 import pytest
 import json
@@ -282,3 +283,18 @@ def test_find_recent_message():
     expected = {"sender": "assistant", "message": "hi"}
 
     assert result == expected
+
+
+def test_parents_log():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        runner.invoke(cli, ["init"], catch_exceptions=False)
+        os.mkdir("subdir")
+        os.chdir("subdir")
+        runner.invoke(cli, ["log"], catch_exceptions=False)
+
+def test_no_log():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        with pytest.raises(FileNotFoundError):
+            runner.invoke(cli, ["log"], catch_exceptions=False)

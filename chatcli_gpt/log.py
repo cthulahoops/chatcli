@@ -1,5 +1,6 @@
 import os
 import os.path
+from pathlib import Path
 import datetime
 import json
 from textwrap import dedent
@@ -108,11 +109,10 @@ def conversation_log():
 
 def find_log():
     path = CHAT_LOG
-    while not os.path.exists(path):
-        if os.path.dirname(os.path.abspath(path)) == "/":
-            raise FileNotFoundError(CHAT_LOG)
-        path = "../" + path
-    return path
+    for directory in Path(path).resolve().parents:
+        if os.path.exists(directory / path):
+            return directory / path
+    raise FileNotFoundError(CHAT_LOG)
 
 
 def search_conversations(offset, search, tag):
