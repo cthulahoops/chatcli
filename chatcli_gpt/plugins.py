@@ -5,10 +5,16 @@ import contextlib
 import ast
 import traceback
 import json
+import subprocess
 import duckduckgo_search
 
 
-BLOCK_PATTERNS = {"pyeval": r"EVALUATE:\n+```(?:python)?\n(.*?)```", "search": r"SEARCH\((.*)\)"}
+BLOCK_PATTERNS = {
+    "bash": r"EVALUATE:\n+```(?:bash)?\n(.*?)```",
+    "pyeval": r"EVALUATE:\n+```(?:python)?\n(.*?)```",
+    "search": r"SEARCH\((.*)\)",
+}
+
 
 def evaluate_plugins(response_text, plugins):
     active_plugin = plugins[0]
@@ -17,6 +23,8 @@ def evaluate_plugins(response_text, plugins):
         return None
     if active_plugin == "pyeval":
         output = exec_python(blocks[0])
+    elif active_plugin == "bash":
+        output = exec_bash(blocks[0])
     elif active_plugin == "search":
         search_term = blocks[0].strip()
         if search_term[0] in "\"'":
@@ -31,6 +39,16 @@ def extract_blocks(response_text, plugin):
     return matches
 
 
+def exec_bash(code):
+    try:
+        result = subprocess.run(
+            ["/bin/bash", "-c", code], capture_output=True, text=True
+        )
+    except Exception:  # pylint: disable=broad-except
+        print(traceback.format_exc())
+    return result.stdout.strip()
+
+
 def exec_python(code):
     buffer = io.StringIO()
 
@@ -41,7 +59,10 @@ def exec_python(code):
             if isinstance(mod.body[-1], ast.Expr):
                 last_expr = mod.body.pop()
                 exec(compile(mod, "<ast>", "exec"), global_scope)
-                result = eval(compile(ast.Expression(last_expr.value), "<ast>", "eval"), global_scope)
+                result = eval(
+                    compile(ast.Expression(last_expr.value), "<ast>", "eval"),
+                    global_scope,
+                )
                 if result is not None:
                     print(result)
             else:
