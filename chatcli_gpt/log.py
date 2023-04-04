@@ -1,4 +1,6 @@
 import os
+import sys
+import shutil
 import os.path
 from pathlib import Path
 import datetime
@@ -18,6 +20,7 @@ INITIAL_PERSONALITIES = {
     },
     "pyeval": {
         "plugins": ["pyeval"],
+        "model": "gpt-4",
         "content": """
                 You can evaluate code by returning any python code in a code block with the line "EVALUATE:" before it.
                 Do you not attempt to compute expressions, or the results of python code yourself, instead use an EVALUATE block.
@@ -43,6 +46,7 @@ INITIAL_PERSONALITIES = {
     },
     "search": {
         "plugins": ["search"],
+        "model": "gpt-4",
         "content": """
             You can search the internet by returning query in the form SEARCH("query")
             Whenever you are asked a question, you should first search the internet for an answer.
@@ -62,12 +66,13 @@ INITIAL_PERSONALITIES = {
 CHAT_LOG = os.environ.get("CHATCLI_LOGFILE", ".chatcli.log")
 
 
-def write_log(messages, completion=None, usage=None, tags=None, plugins=None, path=None):
+def write_log(messages, completion=None, usage=None, tags=None, plugins=None, path=None, model=None):
     assert isinstance(messages, list)
     assert isinstance(tags, list) or tags is None
     assert isinstance(completion, dict) or completion is None
     assert isinstance(usage, dict) or usage is None
     assert isinstance(plugins, (list, tuple)) or plugins is None
+    assert isinstance(model, str) or model is None
     timestamp = datetime.datetime.now().isoformat()
 
     path = path or find_log()
@@ -82,6 +87,7 @@ def write_log(messages, completion=None, usage=None, tags=None, plugins=None, pa
                     "tags": tags or [],
                     "timestamp": timestamp,
                     "plugins": plugins or [],
+                    "model": model,
                 }
             )
             + "\n"
@@ -103,7 +109,20 @@ def create_initial_log(reinit):
 
 def conversation_log():
     log_path = find_log()
-    with open(log_path, encoding="utf-8") as fh:
+    with log_path.open(encoding="utf-8") as fh:
+        line = json.loads(fh.readline())
+        version = line.get("version")
+        if version is None:
+            fh.close()
+            lines = list(convert_log_pre_0_4(log_path))
+            backup_file = log_path.with_suffix(".log.bak.0_3")
+            sys.stderr.write(f"Upgrading log file. Making backup in: {backup_file}\n")
+            shutil.copyfile(log_path, backup_file)
+            with log_path.open("w", encoding="utf-8") as fh:
+                fh.write(json.dumps({"version": "0.4"}) + "\n")
+                for line in lines:
+                    fh.write(line + "\n")
+            return [json.loads(line) for line in lines]
         return [json.loads(line) for line in fh]
 
 
@@ -136,7 +155,7 @@ def get_logged_conversation(offset, search=None, tag=None):
     return next(search_conversations(offset, search, tag))[1]
 
 
-def convert_log(filename):
+def convert_log_pre_0_4(filename):
     with open(filename, "r", encoding="utf-8") as fh:
         for line in fh:
             data = json.loads(line)
@@ -186,5 +205,6 @@ def convert_log(filename):
                 "usage": usage,
                 "timestamp": timestamp,
                 "plugins": data.get("plugins", []),
+                "model": data.get("model"),
             }
             yield json.dumps(converted_data)

@@ -254,17 +254,6 @@ def test_pyeval():
         assert result.exit_code == 0
         assert "42" in result.output
 
-def test_convert_is_noop():
-    runner = CliRunner()
-    with runner.isolated_filesystem():
-        result = runner.invoke(cli, ["init"], catch_exceptions=False)
-        result = runner.invoke(cli, ["chat"], input="What is your name?", catch_exceptions=False)
-        result = runner.invoke(cli, ["tag", "test"], input="What is your name?", catch_exceptions=False)
-        result = runner.invoke(cli, ["convert", ".chatcli.log"], catch_exceptions=False)
-        assert result.exit_code == 0
-        assert [json.loads(x) for x in result.output.splitlines()] == [
-            json.loads(x) for x in open(".chatcli.log", encoding="utf-8").read().splitlines()
-        ]
 
 def test_find_recent_message():
     conversation = {

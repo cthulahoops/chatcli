@@ -16,7 +16,6 @@ from .log import (
     search_conversations,
     get_logged_conversation,
     conversation_log,
-    convert_log,
     create_initial_log,
 )
 from .plugins import evaluate_plugins
@@ -258,21 +257,6 @@ def log(limit, usage, cost, plugins, search_options):
             fields.append(f"{','.join(conversation['plugins'])}")
 
         click.echo(" ".join(fields))
-
-
-@cli.command(
-    help="""Convert old chatlog format to new format.
-    Recommended usage:
-
-    \b
-    cp -i .chatcli.log .chatcli.log.bak
-    chatcli convert .chatcli.log.bak > .chatcli.log
-    """
-)
-@click.argument("filename", type=click.Path(exists=True))
-def convert(filename):
-    for line in convert_log(filename):
-        print(line)
 
 
 def run_conversation(request_messages, model, plugins, tags=None, stream=True, multiline=True, quick=False):
