@@ -28,11 +28,14 @@ pip install chatcli-gpt
 
 2. Initialise the log:
 
+By default it would save logs in ".chatcli.log", could override by setting environment variable `CHATCLI_LOGFILE`.
+
+
 ```
 chatcli init
 ```
 
-3. Set your OpenAI API key in the environment variable `OPENAI_API_SECRET_KEY`.
+3. Set your OpenAI API key in the environment variable `OPENAI_API_KEY`.
 
 4. Run chatcli
 

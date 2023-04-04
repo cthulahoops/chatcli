@@ -353,6 +353,7 @@ def answer(request_messages, model, plugins, stream=True, tags=None):
     else:
         completion = synchroneous_request(request_messages, model)
 
+    # TODO: handle multiple choices
     response_message = completion["choices"][0]["message"]
 
     write_log(
@@ -363,6 +364,9 @@ def answer(request_messages, model, plugins, stream=True, tags=None):
         plugins=plugins,
     )
 
+    # TODO:
+    # - [ ] wrote more plugins and see what's good interface for plugins
+    # - [ ] middleware pattern for plugins
     if plugins:
         plugin_response = evaluate_plugins(response_message["content"], plugins)
 
