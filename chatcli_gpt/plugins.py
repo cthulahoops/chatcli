@@ -57,24 +57,23 @@ def exec_python(code):
     stdout = io.StringIO()
     stderr = io.StringIO()
 
-    with contextlib.redirect_stdout(stdout):
-        with contextlib.redirect_stderr(stderr):
-            global_scope = globals()
-            try:
-                mod = ast.parse(code, mode="exec")
-                if isinstance(mod.body[-1], ast.Expr):
-                    last_expr = mod.body.pop()
-                    exec(compile(mod, "<ast>", "exec"), global_scope)
-                    result = eval(
-                        compile(ast.Expression(last_expr.value), "<ast>", "eval"),
-                        global_scope,
-                    )
-                    if result is not None:
-                        print(result)
-                else:
-                    exec(code, global_scope)
-            except Exception:  # pylint: disable=broad-except
-                print(traceback.format_exc())
+    with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+        global_scope = globals()
+        try:
+            mod = ast.parse(code, mode="exec")
+            if isinstance(mod.body[-1], ast.Expr):
+                last_expr = mod.body.pop()
+                exec(compile(mod, "<ast>", "exec"), global_scope)
+                result = eval(
+                    compile(ast.Expression(last_expr.value), "<ast>", "eval"),
+                    global_scope,
+                )
+                if result is not None:
+                    print(result)
+            else:
+                exec(code, global_scope)
+        except Exception:  # pylint: disable=broad-except
+            print(traceback.format_exc())
 
     return {
         "result": stdout.getvalue().strip(),
