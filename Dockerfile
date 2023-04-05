@@ -1,3 +1,8 @@
+# This is a image for development:
+# 1. It build the python base layer use poetry to install dependency
+# 2. At runtime, it expects the python code loaded from host machine.
+
+
 FROM python:3.11
 
 ENV PYTHONFAULTHANDLER=1 \
@@ -19,7 +24,7 @@ COPY poetry.lock pyproject.toml /code/
 RUN poetry config virtualenvs.create false \
     && poetry install --no-interaction --no-ansi
 
-# Creating folders, and files for a project:
-COPY . /code
+# TODO: turn on for release distribution
+# COPY . /code
 
 CMD ["poetry", "run", "chatcli"]
