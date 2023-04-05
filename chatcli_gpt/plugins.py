@@ -46,39 +46,53 @@ def exec_bash(code):
         )
     except Exception:  # pylint: disable=broad-except
         print(traceback.format_exc())
-    return result.stdout.strip()
+
+    return {
+        "result": result.stdout.strip(),
+        "error": result.stderr.strip(),
+    }
 
 
 def exec_python(code):
-    buffer = io.StringIO()
+    stdout = io.StringIO()
+    stderr = io.StringIO()
 
-    with contextlib.redirect_stdout(buffer):
-        global_scope = globals()
-        try:
-            mod = ast.parse(code, mode="exec")
-            if isinstance(mod.body[-1], ast.Expr):
-                last_expr = mod.body.pop()
-                exec(compile(mod, "<ast>", "exec"), global_scope)
-                result = eval(
-                    compile(ast.Expression(last_expr.value), "<ast>", "eval"),
-                    global_scope,
-                )
-                if result is not None:
-                    print(result)
-            else:
-                exec(code, global_scope)
-        except Exception:  # pylint: disable=broad-except
-            print(traceback.format_exc())
+    with contextlib.redirect_stdout(stdout):
+        with contextlib.redirect_stderr(stderr):
+            global_scope = globals()
+            try:
+                mod = ast.parse(code, mode="exec")
+                if isinstance(mod.body[-1], ast.Expr):
+                    last_expr = mod.body.pop()
+                    exec(compile(mod, "<ast>", "exec"), global_scope)
+                    result = eval(
+                        compile(ast.Expression(last_expr.value), "<ast>", "eval"),
+                        global_scope,
+                    )
+                    if result is not None:
+                        print(result)
+                else:
+                    exec(code, global_scope)
+            except Exception:  # pylint: disable=broad-except
+                print(traceback.format_exc())
 
-    return buffer.getvalue().strip()
+    return {
+        "result": stdout.getvalue().strip(),
+        "error": stderr.getvalue().strip(),
+    }
 
 
 def exec_duckduckgo(search_term):
-    return json.dumps(duckduckgo_search.ddg(search_term, max_results=5))
+    return {"result": json.dumps(duckduckgo_search.ddg(search_term, max_results=5))}
 
 
+# TODO: Truncate the output to meet token requirement and save $$.
 def format_block(output):
-    formatted_output = f"RESULT:\n```\n{output}\n```"
+    formatted_output = ""
+    if output["result"]:
+        formatted_output += f"\nRESULT:\n```\n{output['result']}```"
+    if output["error"]:
+        formatted_output += f"\nERROR:\n```\n{output['error']}```"
     return formatted_output
 
 
