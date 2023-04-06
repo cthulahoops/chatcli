@@ -5,10 +5,16 @@ import contextlib
 import ast
 import traceback
 import json
+import subprocess
 import duckduckgo_search
 
 
-BLOCK_PATTERNS = {"pyeval": r"EVALUATE:\n+```(?:python)?\n(.*?)```", "search": r"SEARCH\((.*)\)"}
+BLOCK_PATTERNS = {
+    "bash": r"EVALUATE:\n+```(?:bash)?\n(.*?)```",
+    "pyeval": r"EVALUATE:\n+```(?:python)?\n(.*?)```",
+    "search": r"SEARCH\((.*)\)",
+}
+
 
 def evaluate_plugins(response_text, plugins):
     active_plugin = plugins[0]
@@ -17,6 +23,8 @@ def evaluate_plugins(response_text, plugins):
         return None
     if active_plugin == "pyeval":
         output = exec_python(blocks[0])
+    elif active_plugin == "bash":
+        output = exec_bash(blocks[0])
     elif active_plugin == "search":
         search_term = blocks[0].strip()
         if search_term[0] in "\"'":
@@ -31,17 +39,35 @@ def extract_blocks(response_text, plugin):
     return matches
 
 
-def exec_python(code):
-    buffer = io.StringIO()
+def exec_bash(code):
+    try:
+        result = subprocess.run(
+            ["/bin/bash", "-c", code], capture_output=True, text=True
+        )
+    except Exception:  # pylint: disable=broad-except
+        print(traceback.format_exc())
 
-    with contextlib.redirect_stdout(buffer):
+    return {
+        "result": result.stdout.strip(),
+        "error": result.stderr.strip(),
+    }
+
+
+def exec_python(code):
+    stdout = io.StringIO()
+    stderr = io.StringIO()
+
+    with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
         global_scope = globals()
         try:
             mod = ast.parse(code, mode="exec")
             if isinstance(mod.body[-1], ast.Expr):
                 last_expr = mod.body.pop()
                 exec(compile(mod, "<ast>", "exec"), global_scope)
-                result = eval(compile(ast.Expression(last_expr.value), "<ast>", "eval"), global_scope)
+                result = eval(
+                    compile(ast.Expression(last_expr.value), "<ast>", "eval"),
+                    global_scope,
+                )
                 if result is not None:
                     print(result)
             else:
@@ -49,15 +75,23 @@ def exec_python(code):
         except Exception:  # pylint: disable=broad-except
             print(traceback.format_exc())
 
-    return buffer.getvalue().strip()
+    return {
+        "result": stdout.getvalue().strip(),
+        "error": stderr.getvalue().strip(),
+    }
 
 
 def exec_duckduckgo(search_term):
-    return json.dumps(duckduckgo_search.ddg(search_term, max_results=5))
+    return {"result": json.dumps(duckduckgo_search.ddg(search_term, max_results=5))}
 
 
+# TODO: Truncate the output to meet token requirement and save $$.
 def format_block(output):
-    formatted_output = f"RESULT:\n```\n{output}\n```"
+    formatted_output = ""
+    if output["result"]:
+        formatted_output += f"\nRESULT:\n```\n{output['result']}```"
+    if output["error"]:
+        formatted_output += f"\nERROR:\n```\n{output['error']}```"
     return formatted_output
 
 
