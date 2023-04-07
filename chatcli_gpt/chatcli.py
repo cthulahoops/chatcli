@@ -266,7 +266,7 @@ def log(limit, usage, cost, plugins, search_options):
 
     \b
     cp -i .chatcli.log .chatcli.log.bak
-    chatlog convert .chatcli.log.bak > .chatcli.log
+    chatcli convert .chatcli.log.bak > .chatcli.log
     """
 )
 @click.argument("filename", type=click.Path(exists=True))
@@ -428,7 +428,7 @@ def main():
     try:
         cli()
     except FileNotFoundError as error:
-        click.echo(f"{error}: Chatlog not initialized. Run `chatlog init` first.")
+        click.echo(f"{error}: Chatcli not initialized. Run `chatcli init` first.")
         sys.exit(1)
 
 
