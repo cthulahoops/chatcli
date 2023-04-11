@@ -238,7 +238,7 @@ def log(limit, usage, cost, plugins, search_options, model):
             question = find_recent_message(lambda message: message["role"] != "assistant", conversation)["content"]
         except ValueError:
             question = conversation["messages"][-1]["content"]
-        trimmed_message = question.split("\n", 1)[0][:80]
+        trimmed_message = question.strip().split("\n", 1)[0][:80]
 
         fields = []
         offset = click.style(f"{offset: 4d}:", fg="blue")
