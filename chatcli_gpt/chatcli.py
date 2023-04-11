@@ -14,7 +14,6 @@ import tiktoken
 from .log import (
     write_log,
     search_conversations,
-    get_logged_conversation,
     conversation_log,
     create_initial_log,
 )
@@ -135,7 +134,7 @@ def init(reinit):
     try:
         create_initial_log(reinit)
     except FileExistsError as error:
-        click.echo(f"{error}: Conversation log already exists.")
+        click.echo(f"{error}: Conversation log already exists.", file=sys.stderr)
         sys.exit(1)
 
 
@@ -415,6 +414,14 @@ def show_usage(today):
     total_cost = sum(conversation_cost(conversation) for conversation in conversations)
     click.echo(f"Tokens: {tokens}")
     click.echo(f"Cost: ${total_cost:.2f}")
+
+
+def get_logged_conversation(offset, search=None, tag=None):
+    try:
+        return next(search_conversations(offset, search, tag))[1]
+    except StopIteration:
+        click.echo("Matching conversation not found", file=sys.stderr)
+        sys.exit(1)
 
 
 def main():

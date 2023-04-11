@@ -175,10 +175,6 @@ def search_conversations(offset, search, tag):
         yield idx, conversation
 
 
-def get_logged_conversation(offset, search=None, tag=None):
-    return next(search_conversations(offset, search, tag))[1]
-
-
 def convert_log_pre_0_4(filename):
     with open(filename, "r", encoding="utf-8") as fh:
         for line in fh:
