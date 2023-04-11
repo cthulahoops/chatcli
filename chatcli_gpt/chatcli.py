@@ -36,6 +36,7 @@ USAGE_COSTS = {
     "gpt-4": {"prompt_tokens": 0.03, "completion_tokens": 0.06},
 }
 
+
 @click.group(cls=DefaultGroup, default="chat", default_if_no_args=True)
 @click.version_option()
 def cli():
