@@ -43,7 +43,7 @@ def cli():
 
 
 def cli_search_options(command):
-    @click.option("-n", "--offset", type=int, help="Message offset")
+    @click.argument("offset", type=int, required=False)
     @click.option("-s", "--search", help="Select by search term")
     @click.option("-t", "--tag", help="Select by tag")
     @functools.wraps(command)
@@ -174,22 +174,22 @@ def list_tags():
 
 
 @cli.command(help="Add tags to an conversation.", name="tag")
+@click.argument("new_tag")
 @cli_search_options
-@click.argument("tags", nargs=-1)
-def add_tag(tags, search_options):
+def add_tag(new_tag, search_options):
     conversation = get_logged_conversation(**search_options)
-    new_tags = [tag for tag in conversation.get("tags", []) if tag not in tags]
-    new_tags.extend(tags)
+    new_tags = [tag for tag in conversation.get("tags", []) if tag != new_tag]
+    new_tags.append(new_tag)
 
     write_log(messages=conversation["messages"], tags=new_tags)
 
 
 @cli.command(help="Remove tags from an conversation.")
+@click.argument("tag_to_remove")
 @cli_search_options
-@click.argument("tags", nargs=-1)
-def untag(tags, search_options):
+def untag(tag_to_remove, search_options):
     conversation = get_logged_conversation(**search_options)
-    new_tags = [t for t in conversation.get("tags", []) if t not in tags]
+    new_tags = [tag for tag in conversation.get("tags", []) if tag != tag_to_remove]
     write_log(messages=conversation["messages"], tags=new_tags)
 
 
