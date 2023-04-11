@@ -230,7 +230,8 @@ def show(long, search_options):
 @click.option("-u", "--usage", is_flag=True, help="Show token usage")
 @click.option("--cost", is_flag=True, help="Show token cost")
 @click.option("--plugins", is_flag=True, help="Show enabled plugins")
-def log(limit, usage, cost, plugins, search_options):
+@click.option("--model", is_flag=True, help="Show model")
+def log(limit, usage, cost, plugins, search_options, model):
     for offset, conversation in reversed(list(itertools.islice(search_conversations(**search_options), limit))):
         try:
             question = find_recent_message(lambda message: message["role"] != "assistant", conversation)["content"]
@@ -258,6 +259,9 @@ def log(limit, usage, cost, plugins, search_options):
 
         if plugins:
             fields.append(f"{','.join(conversation['plugins'])}")
+
+        if model:
+            fields.append(click.style(f"{conversation['model']}", fg="yellow"))
 
         click.echo(" ".join(fields))
 
