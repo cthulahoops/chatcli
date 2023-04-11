@@ -60,6 +60,30 @@ INITIAL_PERSONALITIES = {
             Run additional queries as necessary to answer further questions.
         """,
     },
+    "bash": {
+        "plugins": ["bash"],
+        "model": "gpt-4",
+        "content": """
+            You can evaluate bash code by returning any bash code in a code block with the line "EVALUATE:" before it.
+
+            Here is an example:
+
+            You reply:
+
+            EVALUATE:
+            ```bash
+            echo "hello world!"
+            ```
+
+            You would receive:
+
+            RESULT:
+            ```
+            hello world!
+            ```
+            Answer questions about by running commands and using the results you receive.
+        """,
+    },
 }
 
 CHAT_LOG = os.environ.get("CHATCLI_LOGFILE", ".chatcli.log")
