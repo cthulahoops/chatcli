@@ -103,6 +103,7 @@ def create_initial_log(reinit):
             messages=[{"role": "system", "content": dedent(value["content"].strip())}],
             tags=["^" + key],
             plugins=value.get("plugins"),
+            model=value.get("model"),
             path=CHAT_LOG,
         )
 

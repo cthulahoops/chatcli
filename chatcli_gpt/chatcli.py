@@ -76,7 +76,7 @@ def cli_search_options(command):
 )
 @click.option("-r", "--retry", is_flag=True, help="Retry previous question")
 @click.option("--stream/--sync", default=True, help="Stream or sync mode.")
-@click.option("--model", type=click.Choice(MODELS), default="gpt-3.5-turbo")
+@click.option("--model", type=click.Choice(MODELS))
 @click.option("--plugin", "additional_plugins", multiple=True, help="Load a plugin.")
 @cli_search_options
 def chat(quick, continue_conversation, personality, file, retry, stream, model, additional_plugins, search_options):
@@ -106,6 +106,8 @@ def chat(quick, continue_conversation, personality, file, retry, stream, model, 
 
     plugins = conversation["plugins"]
     plugins.extend(additional_plugins)
+
+    model = model or conversation["model"] or "gpt-3.5-turbo"
 
     if retry:
         response = answer(request_messages[:-1], model, plugins, stream=stream, tags=tags_to_apply)
@@ -347,6 +349,7 @@ def answer(request_messages, model, plugins, stream=True, tags=None):
         usage=completion_usage(request_messages, model, completion),
         tags=tags,
         plugins=plugins,
+        model=model,
     )
 
     # TODO:
