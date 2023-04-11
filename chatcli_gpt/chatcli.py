@@ -141,8 +141,9 @@ def init(reinit):
 @click.option("-p", "--personality")
 @click.option("--role", type=click.Choice(["system", "user", "assistant"]), default="system")
 @click.option("--plugin", multiple="True", help="Activate plugins.")
+@click.option("--model", type=click.Choice(MODELS), default="gpt-3.5-turbo")
 @cli_search_options
-def add(personality, role, plugin, multiline, search_options):
+def add(personality, role, plugin, multiline, search_options, model):
     if any(search_options.values()):
         conversation = get_logged_conversation(**search_options)
         messages = conversation["messages"]
@@ -157,7 +158,7 @@ def add(personality, role, plugin, multiline, search_options):
         click.echo("(Finish input with <Alt-Enter> or <Esc><Enter>)")
     description = prompt(multiline=True)
     messages.append({"role": role, "content": description})
-    write_log(messages=messages, tags=tags, plugins=plugin)
+    write_log(messages=messages, tags=tags, plugins=plugin, model=model)
 
 
 @cli.command(help="List tags.", name="tags")
