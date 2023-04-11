@@ -158,9 +158,9 @@ def find_log():
     raise FileNotFoundError(CHAT_LOG)
 
 
-def search_conversations(offset, search, tag):
+def search_conversations(offsets, search, tag):
     for idx, conversation in enumerate(reversed(conversation_log()), start=1):
-        if offset and idx != offset:
+        if offsets and idx not in offsets:
             continue
 
         if len(conversation["messages"]) > 1:

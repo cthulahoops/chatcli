@@ -57,6 +57,36 @@ def cli_search_options(command):
     return wrapper
 
 
+def select_conversation(command):
+    @click.argument("offset", type=int, required=False)
+    @click.option("-s", "--search", help="Select by search term")
+    @click.option("-t", "--tag", help="Select by tag")
+    @functools.wraps(command)
+    def wrapper(*args, offset=None, search=None, tag=None, **kwargs):
+        return command(
+            *args,
+            conversation=get_logged_conversation(offset=offset, search=search, tag=tag),
+            **kwargs,
+        )
+
+    return wrapper
+
+
+def filter_conversations(command):
+    @click.argument("offsets", type=int, nargs=-1)
+    @click.option("-s", "--search", help="Select by search term")
+    @click.option("-t", "--tag", help="Select by tag")
+    @functools.wraps(command)
+    def wrapper(*args, offsets=None, search=None, tag=None, **kwargs):
+        return command(
+            *args,
+            conversations=search_conversations(offsets=offsets, search=search, tag=tag),
+            **kwargs,
+        )
+
+    return wrapper
+
+
 @cli.command(help="Ask a question of ChatGPT.")
 @click.option("-q", "--quick", is_flag=True, help="Just handle a one single-line question.")
 @click.option(
@@ -175,9 +205,8 @@ def list_tags():
 
 @cli.command(help="Add tags to an conversation.", name="tag")
 @click.argument("new_tag")
-@cli_search_options
-def add_tag(new_tag, search_options):
-    conversation = get_logged_conversation(**search_options)
+@select_conversation
+def add_tag(new_tag, conversation):
     new_tags = [tag for tag in conversation.get("tags", []) if tag != new_tag]
     new_tags.append(new_tag)
 
@@ -186,17 +215,15 @@ def add_tag(new_tag, search_options):
 
 @cli.command(help="Remove tags from an conversation.")
 @click.argument("tag_to_remove")
-@cli_search_options
-def untag(tag_to_remove, search_options):
-    conversation = get_logged_conversation(**search_options)
+@select_conversation
+def untag(tag_to_remove, conversation):
     new_tags = [tag for tag in conversation.get("tags", []) if tag != tag_to_remove]
     write_log(messages=conversation["messages"], tags=new_tags)
 
 
 @cli.command(help="Current tag")
-@cli_search_options
-def show_tag(search_options):
-    conversation = get_logged_conversation(**search_options)
+@select_conversation
+def show_tag(conversation):
     tags = conversation.get("tags", [])
 
     if tags:
@@ -204,14 +231,13 @@ def show_tag(search_options):
 
 
 @cli.command(help="Show a conversation.")
-@cli_search_options
+@select_conversation
 @click.option(
     "-l/-s",
     "--long/--short",
     help="Show full conversation or just the most recent message.",
 )
-def show(long, search_options):
-    conversation = get_logged_conversation(**search_options)
+def show(long, conversation):
     if long:
         messages = conversation["messages"]
     else:
@@ -225,14 +251,14 @@ def show(long, search_options):
 
 
 @cli.command(help="List all the questions we've asked")
-@cli_search_options
+@filter_conversations
 @click.option("-l", "--limit", type=int, help="Limit number of results")
 @click.option("-u", "--usage", is_flag=True, help="Show token usage")
 @click.option("--cost", is_flag=True, help="Show token cost")
 @click.option("--plugins", is_flag=True, help="Show enabled plugins")
 @click.option("--model", is_flag=True, help="Show model")
-def log(limit, usage, cost, plugins, search_options, model):
-    for offset, conversation in reversed(list(itertools.islice(search_conversations(**search_options), limit))):
+def log(conversations, limit, usage, cost, plugins, model):
+    for offset, conversation in reversed(list(itertools.islice(conversations, limit))):
         try:
             question = find_recent_message(lambda message: message["role"] != "assistant", conversation)["content"]
         except ValueError:
@@ -417,8 +443,9 @@ def show_usage(today):
 
 
 def get_logged_conversation(offset, search=None, tag=None):
+    offsets = [offset] if offset else []
     try:
-        return next(search_conversations(offset, search, tag))[1]
+        return next(search_conversations(offsets, search, tag))[1]
     except StopIteration:
         click.echo("Matching conversation not found", file=sys.stderr)
         sys.exit(1)
