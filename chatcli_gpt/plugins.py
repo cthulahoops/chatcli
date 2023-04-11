@@ -85,12 +85,12 @@ def exec_duckduckgo(search_term):
 
 # TODO: Truncate the output to meet token requirement and save $$.
 def format_block(output):
-    formatted_output = ""
+    output_blocks = []
     if output["result"]:
-        formatted_output += f"\nRESULT:\n```\n{output['result']}\n```"
+        output_blocks.append(f"RESULT:\n```\n{output['result']}\n```")
     if output["error"]:
-        formatted_output += f"\nERROR:\n```\n{output['error']}\n```"
-    return formatted_output
+        output_blocks.append(f"ERROR:\n```\n{output['error']}\n```")
+    return "\n".join(output_blocks)
 
 
 if __name__ == "__main__":
