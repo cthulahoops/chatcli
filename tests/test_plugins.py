@@ -19,13 +19,20 @@ def test_extract_block():
 
 
 def test_simple_code():
-    assert exec_python("print(3 + 4)") == '7'
+    assert exec_python("print(3 + 4)") == result('7')
+
 
 def test_sqrt_example():
-    assert exec_python("import math; math.sqrt(4)") == '2.0'
+    assert exec_python("import math; math.sqrt(4)") == result('2.0')
+
 
 def test_use_defined_function():
-    assert exec_python("def double(x):\n  return 2 * x\ndouble(4)\n") == '8'
+    assert exec_python("def double(x):\n  return 2 * x\ndouble(4)\n") == result('8')
+
 
 def test_recursive_function():
-    assert exec_python("def fact(n):\n if n <= 1:\n  return n\n return fact(n - 1) * n\nfact(6)\n") == '720'
+    assert exec_python("def fact(n):\n if n <= 1:\n  return n\n return fact(n - 1) * n\nfact(6)\n") == result('720')
+
+
+def result(result, error=""):
+    return {"result": result, "error": error}
