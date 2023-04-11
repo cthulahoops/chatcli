@@ -1,7 +1,6 @@
 import os
 import sys
 import shutil
-import os.path
 from pathlib import Path
 import datetime
 import json
@@ -95,7 +94,7 @@ def write_log(messages, completion=None, usage=None, tags=None, plugins=None, pa
 
 
 def create_initial_log(reinit):
-    if not reinit and os.path.exists(CHAT_LOG):
+    if not reinit and Path(CHAT_LOG).exists():
         raise FileExistsError(CHAT_LOG)
 
     for key, value in INITIAL_PERSONALITIES.items():
@@ -130,7 +129,7 @@ def conversation_log():
 def find_log():
     path = CHAT_LOG
     for directory in Path(path).resolve().parents:
-        if os.path.exists(directory / path):
+        if (directory / path).exists():
             return directory / path
     raise FileNotFoundError(CHAT_LOG)
 
