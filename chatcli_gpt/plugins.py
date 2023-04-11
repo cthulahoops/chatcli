@@ -89,9 +89,9 @@ def exec_duckduckgo(search_term):
 def format_block(output):
     formatted_output = ""
     if output["result"]:
-        formatted_output += f"\nRESULT:\n```\n{output['result']}```"
+        formatted_output += f"\nRESULT:\n```\n{output['result']}\n```"
     if output["error"]:
-        formatted_output += f"\nERROR:\n```\n{output['error']}```"
+        formatted_output += f"\nERROR:\n```\n{output['error']}\n```"
     return formatted_output
 
 
