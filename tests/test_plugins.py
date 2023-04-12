@@ -30,9 +30,21 @@ def test_bash():
     assert evaluate_plugins(block("let a=4+5; echo $a", "bash"), ["bash"]) == result("9")
 
 
+def test_multiple_blocks():
+    assert evaluate_plugins(block("print(3 + 4)") + block("import math; math.sqrt(4)"), ["pyeval"]) == result(
+        7
+    ) + "\n" + result(2.0)
+
+
+def test_evaluate_multiple_plugins():
+    assert evaluate_plugins(block("print(3 * 4)") + block("echo hi", "bash"), ["pyeval", "bash"]) == result(
+        12
+    ) + "\n" + result("hi")
+
+
 def result(result_text, error=""):
     return format_block({"result": result_text, "error": error})
 
 
 def block(code, block_type="python"):
-    return f"EVALUATE:\n```{block_type}\n{code}\n```"
+    return f"EVALUATE:\n```{block_type}\n{code}\n```\n"

@@ -17,20 +17,21 @@ BLOCK_PATTERNS = {
 
 
 def evaluate_plugins(response_text, plugins):
-    active_plugin = plugins[0]
-    blocks = extract_blocks(response_text, active_plugin)
-    if not blocks:
-        return None
-    if active_plugin == "pyeval":
-        output = exec_python(blocks[0])
-    elif active_plugin == "bash":
-        output = exec_bash(blocks[0])
-    elif active_plugin == "search":
-        search_term = blocks[0].strip()
-        if search_term[0] in "\"'":
-            search_term = ast.literal_eval(search_term)
-        output = exec_duckduckgo(search_term)
-    return format_block(output)
+    formatted_output = []
+    for active_plugin in plugins:
+        blocks = extract_blocks(response_text, active_plugin)
+        for block in blocks:
+            if active_plugin == "pyeval":
+                output = exec_python(block)
+            elif active_plugin == "bash":
+                output = exec_bash(block)
+            elif active_plugin == "search":
+                search_term = block.strip()
+                if search_term[0] in "\"'":
+                    search_term = ast.literal_eval(search_term)
+                output = exec_duckduckgo(search_term)
+            formatted_output.append(format_block(output))
+    return "\n".join(formatted_output)
 
 
 def extract_blocks(response_text, plugin):
