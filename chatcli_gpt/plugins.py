@@ -81,7 +81,7 @@ def exec_python(code):
 
 
 def exec_duckduckgo(search_term):
-    return {"result": json.dumps(duckduckgo_search.ddg(search_term, max_results=5))}
+    return {"result": json.dumps(duckduckgo_search.ddg(search_term, max_results=5), indent=2)}
 
 
 # TODO: Truncate the output to meet token requirement and save $$.
