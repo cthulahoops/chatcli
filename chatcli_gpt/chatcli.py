@@ -4,6 +4,7 @@ import sys
 import itertools
 import functools
 import datetime
+import json
 import dateutil.parser
 import click
 from click_default_group import DefaultGroup
@@ -237,7 +238,12 @@ def show_tag(conversation):
     "--long/--short",
     help="Show full conversation or just the most recent message.",
 )
-def show(long, conversation):
+@click.option("--format-json", "--json", is_flag=True, help="Output conversation in JSON format.")
+def show(long, conversation, format_json):
+    if format_json:
+        click.echo(json.dumps(conversation))
+        return
+
     if long:
         messages = conversation["messages"]
     else:
