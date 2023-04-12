@@ -1,41 +1,38 @@
-from textwrap import dedent
-from chatcli_gpt.plugins import extract_blocks, exec_python
-
-
-def test_extract_block():
-    response_text = dedent(
-        """
-    This is an example text with an evaluation block.
-
-    EVALUATE:
-    ```
-    print("3 + 4")
-    ```
-
-    There could be more text after the block.
-    """
-    )
-
-    blocks = extract_blocks(response_text, "pyeval")
-
-    assert blocks == ['print("3 + 4")\n']
+from unittest import mock
+from chatcli_gpt.plugins import evaluate_plugins, format_block
 
 
 def test_simple_code():
-    assert exec_python("print(3 + 4)") == result("7")
+    assert evaluate_plugins(block("print(3 + 4)"), ["pyeval"]) == result("7")
 
 
 def test_sqrt_example():
-    assert exec_python("import math; math.sqrt(4)") == result("2.0")
+    assert evaluate_plugins(block("import math; math.sqrt(4)"), ["pyeval"]) == result("2.0")
 
 
 def test_use_defined_function():
-    assert exec_python("def double(x):\n  return 2 * x\ndouble(4)\n") == result("8")
+    assert evaluate_plugins(block("def double(x):\n  return 2 * x\ndouble(4)\n"), ["pyeval"]) == result("8")
 
 
 def test_recursive_function():
-    assert exec_python("def fact(n):\n if n <= 1:\n  return n\n return fact(n - 1) * n\nfact(6)\n") == result("720")
+    assert evaluate_plugins(
+        block("def fact(n):\n if n <= 1:\n  return n\n return fact(n - 1) * n\nfact(6)\n"), ["pyeval"]
+    ) == result("720")
 
 
-def result(result, error=""):
-    return {"result": result, "error": error}
+@mock.patch("chatcli_gpt.plugins.duckduckgo_search.ddg", return_value='[{"content": "Some guy"}]')
+def test_simple_search(mock_ddg):
+    assert "Some guy" in evaluate_plugins('SEARCH("Who is the president of the USA?")', ["search"])
+    assert mock_ddg.call_args.args[0] == "Who is the president of the USA?"
+
+
+def test_bash():
+    assert evaluate_plugins(block("let a=4+5; echo $a", "bash"), ["bash"]) == result("9")
+
+
+def result(result_text, error=""):
+    return format_block({"result": result_text, "error": error})
+
+
+def block(code, block_type="python"):
+    return f"EVALUATE:\n```{block_type}\n{code}\n```"
