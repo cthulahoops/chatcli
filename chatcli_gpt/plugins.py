@@ -41,10 +41,7 @@ def extract_blocks(response_text, plugin):
 
 
 def exec_bash(code):
-    try:
-        result = subprocess.run(["/bin/bash", "-c", code], capture_output=True, text=True)
-    except Exception:  # pylint: disable=broad-except
-        print(traceback.format_exc())
+    result = subprocess.run(["/bin/bash", "-c", code], capture_output=True, text=True, check=False)
 
     return {
         "result": result.stdout.strip(),
