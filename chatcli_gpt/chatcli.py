@@ -130,7 +130,7 @@ def chat(quick, continue_conversation, personality, file, retry, stream, model, 
         )
 
     tags = conversation.get("tags", [])
-    if tags and not tags[-1].startswith("^"):
+    if tags and not is_personality(tags[-1]):
         tags_to_apply = [tags[-1]]
     else:
         tags_to_apply = []
@@ -192,6 +192,33 @@ def add(personality, role, plugin, multiline, search_options, model):
     description = prompt(multiline=True)
     messages.append({"role": role, "content": description})
     write_log(messages=messages, tags=tags, plugins=plugin, model=model)
+
+
+def merge_list(input_list, additions):
+    for item in additions:
+        if item not in input_list:
+            input_list.append(item)
+
+
+@cli.command(help="Create a new conversation by merging existing conversations.")
+@click.option("-p", "--personality", help="Set personality for new conversation.")
+@filter_conversations
+def merge(conversations, personality):
+    merged_conversation = {
+        "messages": [],
+        "tags": [],
+        "plugins": [],
+        "model": None,
+    }
+    merged_conversation["tags"].append("^" + personality)
+
+    for _, item in conversations:
+        merge_list(merged_conversation["messages"], item["messages"])
+        merge_list(merged_conversation["tags"], (tag for tag in item["tags"] if not is_personality(tag)))
+        merge_list(merged_conversation["plugins"], item["plugins"])
+        merged_conversation["model"] = merged_conversation["model"] or item["model"]
+
+    write_log(**merged_conversation)
 
 
 @cli.command(help="List tags.", name="tags")
@@ -455,6 +482,10 @@ def get_logged_conversation(offset, search=None, tag=None):
     except StopIteration:
         click.echo("Matching conversation not found", file=sys.stderr)
         sys.exit(1)
+
+
+def is_personality(tag):
+    return tag.startswith("^")
 
 
 def main():
