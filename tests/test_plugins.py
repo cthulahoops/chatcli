@@ -26,6 +26,13 @@ def test_simple_search(mock_ddg):
     assert mock_ddg.call_args.args[0] == "Who is the president of the USA?"
 
 
+@mock.patch("chatcli_gpt.plugins.wolframalpha")
+@mock.patch("os.environ", {"WOLFRAM_ALPHA_API_KEY": "TRUE"})
+def test_wolfram(mock_wolfram):
+    next(mock_wolfram.Client().query().results).text = "Paris"
+    assert "Paris" in evaluate_plugins('WOLFRAM("What is the capital of France?")', ["wolfram"])
+
+
 def test_bash():
     assert evaluate_plugins(block("let a=4+5; echo $a", "bash"), ["bash"]) == result("9")
 

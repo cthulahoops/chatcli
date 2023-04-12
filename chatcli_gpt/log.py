@@ -84,6 +84,19 @@ INITIAL_PERSONALITIES = {
             Answer questions about by running commands and using the results you receive.
         """,
     },
+    "wolfram": {
+        "plugins": ["wolfram"],
+        "model": "gpt-4",
+        "content": """
+            You can use wolfram alpha to access various facts about the world, and to solve equations.
+
+            For example:
+
+            WOLFRAM("What is the capital of France?")
+
+            You will get the answer to your queries as a result block. Use the answers to help you answer the question.
+        """,
+    },
 }
 
 CHAT_LOG = os.environ.get("CHATCLI_LOGFILE", ".chatcli.log")
@@ -123,7 +136,7 @@ def create_initial_log(reinit):
 
     for key, value in INITIAL_PERSONALITIES.items():
         write_log(
-            messages=[{"role": "system", "content": dedent(value["content"].strip())}],
+            messages=[{"role": "system", "content": dedent(value["content"]).strip()}],
             tags=["^" + key],
             plugins=value.get("plugins"),
             model=value.get("model"),

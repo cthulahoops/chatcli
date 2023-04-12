@@ -1,5 +1,6 @@
 import re
 import io
+import os
 import sys
 import contextlib
 import ast
@@ -7,12 +8,14 @@ import traceback
 import json
 import subprocess
 import duckduckgo_search
+import wolframalpha
 
 
 BLOCK_PATTERNS = {
     "bash": r"EVALUATE:\n+```(?:bash)?\n(.*?)```",
     "pyeval": r"EVALUATE:\n+```(?:python)?\n(.*?)```",
     "search": r"SEARCH\((.*)\)",
+    "wolfram": r"WOLFRAM\((.*)\)",
 }
 
 
@@ -31,6 +34,11 @@ def evaluate_plugins(response_text, plugins):
                     if search_term[0] in "\"'":
                         search_term = ast.literal_eval(search_term)
                     output = exec_duckduckgo(search_term)
+                case "wolfram":
+                    search_term = block.strip()
+                    if search_term[0] in "\"'":
+                        search_term = ast.literal_eval(search_term)
+                    output = exec_wolfram(search_term)
             formatted_output.append(format_block(output))
     return "\n".join(formatted_output)
 
@@ -80,6 +88,15 @@ def exec_python(code):
 
 def exec_duckduckgo(search_term):
     return {"result": json.dumps(duckduckgo_search.ddg(search_term, max_results=5), indent=2)}
+
+
+def exec_wolfram(query):
+    api_key = os.environ.get("WOLFRAM_ALPHA_API_KEY")
+    if not api_key:
+        return {"error": "WOLFRAM_ALPHA_API_KEY is not configured. (Set as an environment variable.)"}
+    client = wolframalpha.Client(api_key)
+    result = client.query(query)
+    return {"result": next(result.results).text}
 
 
 # TODO: Truncate the output to meet token requirement and save $$.

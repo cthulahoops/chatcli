@@ -20,6 +20,7 @@ tiktoken = "^0.3.2"
 python-dateutil = "^2.8.2"
 duckduckgo-search = "^2.8.5"
 pillow = "^9.4.0"
+wolframalpha = "^5.0.0"
 
 [tool.poetry.dev-dependencies]
 
