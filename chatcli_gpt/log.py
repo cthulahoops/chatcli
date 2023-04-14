@@ -118,28 +118,20 @@ INITIAL_PERSONALITIES = {
 CHAT_LOG = os.environ.get("CHATCLI_LOGFILE", ".chatcli.log")
 
 
-def write_log(messages, completion=None, usage=None, tags=None, plugins=None, path=None, model=None):
-    assert isinstance(messages, list)
-    assert isinstance(tags, list) or tags is None
-    assert isinstance(completion, dict) or completion is None
-    assert isinstance(usage, dict) or usage is None
-    assert isinstance(plugins, (list, tuple)) or plugins is None
-    assert isinstance(model, str) or model is None
-    timestamp = datetime.datetime.now().isoformat()
-
+def write_log(conversation, usage=None, completion=None, path=None):
     path = path or find_log()
-
+    timestamp = datetime.datetime.now().isoformat()
     with open(path, "a", buffering=1, encoding="utf-8") as fh:
         fh.write(
             json.dumps(
                 {
-                    "messages": messages,
+                    "messages": conversation.messages,
                     "completion": completion,
                     "usage": usage,
-                    "tags": tags or [],
+                    "tags": conversation.tags or [],
                     "timestamp": timestamp,
-                    "plugins": plugins or [],
-                    "model": model,
+                    "plugins": conversation.plugins or [],
+                    "model": conversation.model,
                 }
             )
             + "\n"
@@ -152,10 +144,12 @@ def create_initial_log(reinit):
 
     for key, value in INITIAL_PERSONALITIES.items():
         write_log(
-            messages=[{"role": "system", "content": dedent(value["content"]).strip()}],
-            tags=["^" + key],
-            plugins=value.get("plugins"),
-            model=value.get("model"),
+            Conversation(
+                messages=[{"role": "system", "content": dedent(value["content"]).strip()}],
+                tags=["^" + key],
+                plugins=value.get("plugins"),
+                model=value.get("model"),
+            ),
             path=CHAT_LOG,
         )
 

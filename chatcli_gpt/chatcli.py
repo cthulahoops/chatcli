@@ -4,7 +4,6 @@ import sys
 import itertools
 import functools
 import datetime
-import json
 import dateutil.parser
 import click
 from click_default_group import DefaultGroup
@@ -19,6 +18,7 @@ from .log import (
     create_initial_log,
 )
 from .plugins import evaluate_plugins
+from .conversation import Conversation
 
 MODELS = [
     "gpt-4",
@@ -173,23 +173,32 @@ def init(reinit):
 @click.option("--role", type=click.Choice(["system", "user", "assistant"]), default="system")
 @click.option("--plugin", multiple="True", help="Activate plugins.")
 @click.option("--model", type=click.Choice(MODELS), default="gpt-3.5-turbo")
+@click.option("--plugin", "additional_plugins", multiple=True, help="Load a plugin.")
 @cli_search_options
-def add(personality, role, plugin, multiline, search_options, model):
+def add(personality, role, plugin, multiline, search_options, **kwargs):
     if any(search_options.values()):
         conversation = get_logged_conversation(**search_options)
-        messages = conversation.messages
     else:
-        messages = []
+        conversation = Conversation()
 
-    tags = []
+    tags = conversation.tags
+    if tags and not is_personality(tags[-1]):
+        tags_to_apply = [tags[-1]]
+    else:
+        tags_to_apply = []
+
+    conversation.plugins.extend(kwargs["additional_plugins"])
+    conversation.tags = tags_to_apply
+    conversation.model = kwargs["model"] or conversation.model or "gpt-3.5-turbo"
+
     if personality:
-        tags.append("^" + personality)
+        conversation.tags.append("^" + personality)
 
     if multiline and os.isatty(0):
         click.echo("(Finish input with <Alt-Enter> or <Esc><Enter>)")
     description = prompt(multiline=True)
-    messages.append({"role": role, "content": description})
-    write_log(messages=messages, tags=tags, plugins=plugin, model=model)
+    conversation.append({"role": role, "content": description})
+    write_log(conversation)
 
 
 def merge_list(input_list, additions):
@@ -235,16 +244,17 @@ def list_tags():
 def add_tag(new_tag, conversation):
     new_tags = [tag for tag in conversation.tags if tag != new_tag]
     new_tags.append(new_tag)
+    conversation.tags = new_tags
 
-    write_log(messages=conversation.messages, tags=new_tags)
+    write_log(conversation)
 
 
 @cli.command(help="Remove tags from an conversation.")
 @click.argument("tag_to_remove")
 @select_conversation
 def untag(tag_to_remove, conversation):
-    new_tags = [tag for tag in conversation.tags if tag != tag_to_remove]
-    write_log(messages=conversation.messages, tags=new_tags)
+    conversation.tags = [tag for tag in conversation.tags if tag != tag_to_remove]
+    write_log(conversation)
 
 
 @cli.command(help="Current tag")
@@ -264,7 +274,7 @@ def show_tag(conversation):
 @click.option("--format-json", "--json", is_flag=True, help="Output conversation in JSON format.")
 def show(long, conversation, format_json):
     if format_json:
-        click.echo(json.dumps(conversation))
+        click.echo(conversation.to_json())
         return
 
     if long:
@@ -290,7 +300,7 @@ def show(long, conversation, format_json):
 def log(conversations, limit, usage, cost, plugins, model, format_json):
     for offset, conversation in reversed(list(itertools.islice(conversations, limit))):
         if format_json:
-            click.echo(json.dumps(conversation))
+            click.echo(conversation.to_json())
             continue
         try:
             question = find_recent_message(lambda message: message["role"] != "assistant", conversation)["content"]
@@ -413,12 +423,9 @@ def add_answer(conversation, stream=True):
     response_message = completion["choices"][0]["message"]
     conversation.append(response_message)
     write_log(
-        messages=conversation.messages,
+        conversation,
         completion=completion,
         usage=completion_usage(conversation.messages[:-1], conversation.model, completion),
-        tags=conversation.tags,
-        plugins=conversation.plugins,
-        model=conversation.model,
     )
 
     # TODO:

@@ -1,3 +1,6 @@
+import json
+
+
 class Conversation:
     def __init__(self, messages=None, plugins=None, tags=None, model=None, usage=None, completion=None, timestamp=None):
         self.messages = messages or []
@@ -17,3 +20,6 @@ class Conversation:
         else:
             question = self.messages[-1]["content"]
         return search_term in question
+
+    def to_json(self):
+        return json.dumps(self.__dict__)

@@ -156,6 +156,23 @@ def test_tag():
         assert "test_tag" in result.output
 
 
+def test_tag_preserves_model():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["init"], catch_exceptions=False)
+        result = runner.invoke(
+            cli,
+            ["chat", "--quick", "-p", "concise", "--model", "gpt-4"],
+            input="What is your name?",
+            catch_exceptions=False,
+        )
+        result = runner.invoke(cli, ["tag", "test_tag"], catch_exceptions=False)
+        assert result.exit_code == 0
+        result = runner.invoke(cli, ["show", "--json"], catch_exceptions=False)
+        assert result.exit_code == 0
+        assert "gpt-4" == json.loads(result.output)["model"]
+
+
 def test_tags():
     runner = CliRunner()
     with runner.isolated_filesystem():
