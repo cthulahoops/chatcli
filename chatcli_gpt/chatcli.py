@@ -123,15 +123,14 @@ def chat(search_options, **kwargs):
 
     conversation = get_logged_conversation(**search_options)
 
-    request_messages = conversation.messages
-
     for filename in kwargs["file"]:
         with open(filename, encoding="utf-8") as fh:
             file_contents = fh.read()
-        request_messages.append(
+
+        conversation.append(
             {
                 "role": "user",
-                "content": f"The file {kwargs['file']} contains:\n```\n{file_contents}```",
+                "content": f"The file {filename!r} contains:\n```\n{file_contents}```",
             }
         )
 

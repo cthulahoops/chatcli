@@ -51,6 +51,14 @@ def test_chat_code(chatcli):
     assert "SAY HELLO IN PYTHON" in result.output
 
 
+def test_chat_with_file(chatcli):
+    with open("test.txt", "w", encoding="utf-8") as fh:
+        fh.write("Hello, world!")
+    chatcli("-f test.txt", input="What's in this file?")
+    result = chatcli("show --json")
+    assert "The file 'test.txt' contains:\n```\nHello, world!```" == json.loads(result.output)["messages"][1]["content"]
+
+
 def test_show_short(chatcli):
     result = chatcli("chat -q", input="What is your name?")
     result = chatcli("show -s")
