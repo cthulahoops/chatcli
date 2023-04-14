@@ -6,6 +6,8 @@ import datetime
 import json
 from textwrap import dedent
 
+from .conversation import Conversation
+
 INITIAL_PERSONALITIES = {
     "concise": {
         "content": "You are a helpful, expert linux user and programmer. You give concise answers, providing code where possible.",
@@ -174,7 +176,7 @@ def conversation_log():
                 for line in lines:
                     fh.write(line + "\n")
             return [json.loads(line) for line in lines]
-        return [json.loads(line) for line in fh]
+        return [Conversation(**json.loads(line)) for line in fh]
 
 
 def find_log():
@@ -190,14 +192,9 @@ def search_conversations(offsets, search, tag):
         if offsets and idx not in offsets:
             continue
 
-        if len(conversation["messages"]) > 1:
-            question = conversation["messages"][-2]["content"]
-        else:
-            question = conversation["messages"][-1]["content"]
-
-        if search and search not in question:
+        if search and search not in conversation:
             continue
-        if tag and tag not in conversation.get("tags", []):
+        if tag and tag not in conversation.tags:
             continue
         yield idx, conversation
 

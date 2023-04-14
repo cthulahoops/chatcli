@@ -134,7 +134,7 @@ def chat(search_options, **kwargs):
             }
         )
 
-    tags = conversation.get("tags", [])
+    tags = conversation.tags
     if tags and not is_personality(tags[-1]):
         tags_to_apply = [tags[-1]]
     else:
@@ -232,7 +232,7 @@ def list_tags():
 @click.argument("new_tag")
 @select_conversation
 def add_tag(new_tag, conversation):
-    new_tags = [tag for tag in conversation.get("tags", []) if tag != new_tag]
+    new_tags = [tag for tag in conversation.tags if tag != new_tag]
     new_tags.append(new_tag)
 
     write_log(messages=conversation["messages"], tags=new_tags)
@@ -249,10 +249,8 @@ def untag(tag_to_remove, conversation):
 @cli.command(help="Current tag")
 @select_conversation
 def show_tag(conversation):
-    tags = conversation.get("tags", [])
-
-    if tags:
-        click.echo(tags[-1])
+    if conversation.tags:
+        click.echo(conversation.tags[-1])
 
 
 @cli.command(help="Show a conversation.")
