@@ -123,7 +123,7 @@ def chat(search_options, **kwargs):
 
     conversation = get_logged_conversation(**search_options)
 
-    request_messages = conversation["messages"]
+    request_messages = conversation.messages
 
     for filename in kwargs["file"]:
         with open(filename, encoding="utf-8") as fh:
@@ -143,7 +143,7 @@ def chat(search_options, **kwargs):
 
     conversation.plugins.extend(kwargs["additional_plugins"])
     conversation.tags = tags_to_apply
-    conversation.model = kwargs["model"] or conversation["model"] or "gpt-3.5-turbo"
+    conversation.model = kwargs["model"] or conversation.model or "gpt-3.5-turbo"
 
     quick = kwargs["quick"] or not os.isatty(0)
     multiline = not quick
@@ -405,32 +405,30 @@ def answer(conversation, stream):
 
 def add_answer(conversation, stream=True):
     if stream:
-        completion = stream_request(conversation["messages"], conversation["model"])
+        completion = stream_request(conversation.messages, conversation.model)
     else:
-        completion = synchroneous_request(conversation["messages"], conversation["model"])
+        completion = synchroneous_request(conversation.messages, conversation.model)
 
     # TODO: handle multiple choices
     response_message = completion["choices"][0]["message"]
-
+    conversation.append(response_message)
     write_log(
-        messages=conversation["messages"] + [response_message],
+        messages=conversation.messages,
         completion=completion,
-        usage=completion_usage(conversation["messages"], conversation["model"], completion),
-        tags=conversation["tags"],
-        plugins=conversation["plugins"],
-        model=conversation["model"],
+        usage=completion_usage(conversation.messages[:-1], conversation.model, completion),
+        tags=conversation.tags,
+        plugins=conversation.plugins,
+        model=conversation.model,
     )
-    conversation["messages"].append(response_message)
 
     # TODO:
     # - [ ] wrote more plugins and see what's good interface for plugins
     # - [ ] middleware pattern for plugins
-    if conversation["plugins"]:
-        plugin_response = evaluate_plugins(response_message["content"], conversation["plugins"])
+    if conversation.plugins:
+        plugin_response = evaluate_plugins(response_message["content"], conversation.plugins)
 
         if plugin_response:
-            conversation["messages"].append(response_message)
-            conversation["messages"].append({"role": "user", "content": plugin_response})
+            conversation.append({"role": "user", "content": plugin_response})
             click.echo(click.style(plugin_response, fg=(200, 180, 90)))
             return add_answer(conversation, stream=stream)
 
