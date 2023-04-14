@@ -217,15 +217,16 @@ def merge(conversations, personality):
         "plugins": [],
         "model": None,
     }
-    merged_conversation["tags"].append("^" + personality)
+    if personality:
+        merged_conversation["tags"].append("^" + personality)
 
-    for _, item in conversations:
-        merge_list(merged_conversation["messages"], item["messages"])
-        merge_list(merged_conversation["tags"], (tag for tag in item["tags"] if not is_personality(tag)))
-        merge_list(merged_conversation["plugins"], item["plugins"])
-        merged_conversation["model"] = merged_conversation["model"] or item["model"]
+    for _, item in reversed(list(conversations)):
+        merge_list(merged_conversation["messages"], item.messages)
+        merge_list(merged_conversation["tags"], (tag for tag in item.tags if not is_personality(tag)))
+        merge_list(merged_conversation["plugins"], item.plugins)
+        merged_conversation["model"] = item.model or merged_conversation["model"]
 
-    write_log(**merged_conversation)
+    write_log(Conversation(**merged_conversation))
 
 
 @cli.command(help="List tags.", name="tags")

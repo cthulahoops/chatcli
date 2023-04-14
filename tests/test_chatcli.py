@@ -1,3 +1,4 @@
+# pylint: disable=redefined-outer-name
 import os
 import json
 from unittest.mock import patch
@@ -324,3 +325,28 @@ def test_answer():
         result = runner.invoke(cli, ["answer"], catch_exceptions=False)
         assert result.exit_code == 0
         assert "WHAT IS YOUR NAME?" in result.output
+
+
+@pytest.fixture
+def chatcli():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+
+        def chatcli(*args, **kwargs):
+            result = runner.invoke(cli, *args, catch_exceptions=False, **kwargs)
+            assert result.exit_code == 0
+            return result
+
+        runner.invoke(cli, ["init"], catch_exceptions=False)
+        yield chatcli
+
+
+def test_merge(chatcli):
+    result = chatcli(["add", "--role", "user", "--plugin", "a"], input="What is your name?")
+    result = chatcli(["add", "--role", "assistant", "--plugin", "b", "--model", "gpt-4"], input="My name is Bob.")
+    result = chatcli(["merge", "-p", "test", "1", "2"])
+    result = chatcli(["show", "--json"])
+    data = json.loads(result.stdout)
+    assert data["tags"] == ["^test"]
+    assert data["plugins"] == ["a", "b"]
+    assert data["model"] == "gpt-4"
