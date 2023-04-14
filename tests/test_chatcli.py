@@ -42,144 +42,144 @@ def chatcli():
             assert result.exit_code == 0
             return result
 
-        chatcli(["init"])
+        chatcli("init")
         yield chatcli
 
 
 def test_chat_code(chatcli):
-    result = chatcli(["chat", "--quick", "-p", "code"], input="Say hello in python")
+    result = chatcli("chat --quick -p code", input="Say hello in python")
     assert "SAY HELLO IN PYTHON" in result.output
 
 
 def test_show_short(chatcli):
-    result = chatcli(["chat", "-q"], input="What is your name?")
-    result = chatcli(["show", "-s"])
+    result = chatcli("chat -q", input="What is your name?")
+    result = chatcli("show -s")
     assert "What is your name?" not in result.output
     assert "WHAT IS YOUR NAME?" in result.output
 
 
 def test_show_long(mocker, chatcli):
-    chatcli(["chat", "-q"], input="What is your name?")
-    result = chatcli(["show", "-l"])
+    chatcli("chat -q", input="What is your name?")
+    result = chatcli("show -l")
     assert "expert linux user" in result.output
     assert "What is your name?" in result.output
     assert "WHAT IS YOUR NAME?" in result.output
 
 
 def test_log(mocker, chatcli):
-    chatcli(["chat", "--quick", "-p", "concise"], input="What is your name?")
-    chatcli(["chat", "--quick", "-c"], input="What is your quest?")
-    result = chatcli(["log"])
+    chatcli("chat --quick -p concise", input="What is your name?")
+    chatcli("chat --quick -c", input="What is your quest?")
+    result = chatcli("log")
     assert "2: What is your name?" in result.output
     assert "1: What is your quest?" in result.output
 
 
 def test_chat_log_search(chatcli):
-    chatcli(["chat", "--quick", "-p", "concise"], input="What is your name?")
-    chatcli(["chat", "--quick", "-c"], input="What is your quest?")
-    result = chatcli(["log", "-s", "name"])
+    chatcli("chat --quick -p concise", input="What is your name?")
+    chatcli("chat --quick -c", input="What is your quest?")
+    result = chatcli("log -s name")
     assert "2: What is your name?" in result.output
     assert "1: What is your quest?" not in result.output
 
 
 def test_usage(chatcli):
-    chatcli(["chat"], input="What is your name?")
-    chatcli(["chat"], input="What is your name?")
-    result = chatcli(["usage"])
+    chatcli("chat", input="What is your name?")
+    chatcli("chat", input="What is your name?")
+    result = chatcli("usage")
     assert "Tokens: 82" in result.output
     assert "Cost: $0.00" in result.output
 
 
 def test_tag_usage(chatcli):
-    chatcli(["chat"], input="What is your name?")
-    chatcli(["chat"], input="What is your name?")
-    chatcli(["tag", "test_tag"])
-    result = chatcli(["usage"])
+    chatcli("chat", input="What is your name?")
+    chatcli("chat", input="What is your name?")
+    chatcli("tag test_tag")
+    result = chatcli("usage")
     assert "Tokens: 82" in result.output
     assert "Cost: $0.00" in result.output
 
 
 def test_untag_usage(chatcli):
-    chatcli(["chat"], input="What is your name?")
-    chatcli(["chat"], input="What is your name?")
-    chatcli(["untag", "test_tag"])
-    result = chatcli(["usage"])
+    chatcli("chat", input="What is your name?")
+    chatcli("chat", input="What is your name?")
+    chatcli("untag test_tag")
+    result = chatcli("usage")
     assert "Tokens: 82" in result.output
     assert "Cost: $0.00" in result.output
 
 
 def test_chat_retry(chatcli):
-    chatcli(["chat"], input="What is your name?")
-    result = chatcli(["chat", "--quick", "--retry"])
+    chatcli("chat", input="What is your name?")
+    result = chatcli("chat --quick --retry")
     assert "WHAT IS YOUR NAME?" in result.output
 
 
 def test_tag(chatcli):
-    chatcli(["chat", "--quick", "-p", "concise"], input="What is your name?")
-    chatcli(["tag", "test_tag"])
-    result = chatcli(["log", "-t", "test_tag"])
+    chatcli("chat --quick -p concise", input="What is your name?")
+    chatcli("tag test_tag")
+    result = chatcli("log -t test_tag")
     assert len(result.output.splitlines()) == 1
     assert "test_tag" in result.output
 
 
 def test_tag_preserves_model(chatcli):
-    chatcli(["chat", "--quick", "-p", "concise", "--model", "gpt-4"], input="What is your name?")
-    chatcli(["tag", "test_tag"])
-    result = chatcli(["show", "--json"])
+    chatcli("chat --quick -p concise --model gpt-4", input="What is your name?")
+    chatcli("tag test_tag")
+    result = chatcli("show --json")
     assert "gpt-4" == json.loads(result.output)["model"]
 
 
 def test_tags(chatcli):
-    chatcli(["chat", "--quick", "-p", "concise"], input="What is your name?")
-    chatcli(["tag", "test_tag"])
-    chatcli(["tag", "test_tag2"])
-    result = chatcli(["tags"])
+    chatcli("chat --quick -p concise", input="What is your name?")
+    chatcli("tag test_tag")
+    chatcli("tag test_tag2")
+    result = chatcli("tags")
     assert "test_tag" in result.output
     assert "test_tag2" in result.output
 
 
 def test_tag_delete(chatcli):
-    chatcli(["chat", "--quick", "-p", "concise"], input="What is your name?")
-    chatcli(["tag", "test_tag"])
-    chatcli(["untag", "test_tag"])
-    result = chatcli(["log", "-l", "1"])
+    chatcli("chat --quick -p concise", input="What is your name?")
+    chatcli("tag test_tag")
+    chatcli("untag test_tag")
+    result = chatcli("log -l 1")
     assert "test_tag" not in result.output
 
 
 def test_show_tag(chatcli):
-    chatcli(["chat", "--quick", "-p", "concise"], input="What is your name?")
-    chatcli(["tag", "test_tag"])
-    result = chatcli(["show-tag"])
+    chatcli("chat --quick -p concise", input="What is your name?")
+    chatcli("tag test_tag")
+    result = chatcli("show-tag")
     assert "test_tag" in result.output
 
 
 def test_current_tag_follows_conversation(chatcli):
-    chatcli(["chat", "--quick", "-p", "concise"], input="What is your name?")
-    chatcli(["tag", "test_tag"])
-    chatcli(["chat", "--continue", "--quick"], input="What is your quest?")
-    result = chatcli(["show-tag"])
+    chatcli("chat --quick -p concise", input="What is your name?")
+    chatcli("tag test_tag")
+    chatcli("chat --continue --quick", input="What is your quest?")
+    result = chatcli("show-tag")
     assert "test_tag" in result.output
 
 
 def test_add_personality(chatcli):
-    chatcli(["add", "-p", "test_personality"], input="You are a test personality.")
-    result = chatcli(["log"])
+    chatcli("add -p test_personality", input="You are a test personality.")
+    result = chatcli("log")
     assert "^test_personality" in result.output
 
 
 def test_add_personality_with_pyeval_and_evaluate(chatcli):
-    chatcli(["add", "-p", "test_personality", "--plugin", "pyeval"], input="You are a test personality.")
-    result = chatcli(["log", "--plugins"])
+    chatcli("add -p test_personality --plugin pyeval", input="You are a test personality.")
+    result = chatcli("log --plugins")
     assert "^test_personality" in result.output
 
 
 def test_default_personality_cannot_evaluate(chatcli):
-    result = chatcli(["chat"], input="evaluate: 6 * 7")
+    result = chatcli("chat", input="evaluate: 6 * 7")
     assert "42" not in result.output
 
 
 def test_pyeval(chatcli):
-    result = chatcli(["chat", "-p", "pyeval"], input="evaluate: 6 * 7")
+    result = chatcli("chat -p pyeval", input="evaluate: 6 * 7")
     assert "42" in result.output
 
 
@@ -207,7 +207,7 @@ def test_find_recent_message():
 def test_parents_log(chatcli):
     os.mkdir("subdir")
     os.chdir("subdir")
-    chatcli(["log"])
+    chatcli("log")
 
 
 def test_no_log():
@@ -218,16 +218,16 @@ def test_no_log():
 
 
 def test_answer(chatcli):
-    chatcli(["add", "--role", "user"], input="What is your name?")
-    result = chatcli(["answer"])
+    chatcli("add --role user", input="What is your name?")
+    result = chatcli("answer")
     assert "WHAT IS YOUR NAME?" in result.output
 
 
 def test_merge(chatcli):
-    chatcli(["add", "--role", "user", "--plugin", "a"], input="What is your name?")
-    chatcli(["add", "--role", "assistant", "--plugin", "b", "--model", "gpt-4"], input="My name is Bob.")
-    chatcli(["merge", "-p", "test", "1", "2"])
-    result = chatcli(["show", "--json"])
+    chatcli("add --role user --plugin a", input="What is your name?")
+    chatcli("add --role assistant --plugin b --model gpt-4", input="My name is Bob.")
+    chatcli("merge -p test 1 2")
+    result = chatcli("show --json")
     data = json.loads(result.stdout)
     assert data["tags"] == ["^test"]
     assert data["plugins"] == ["a", "b"]
