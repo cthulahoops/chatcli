@@ -1,9 +1,10 @@
 import os
+import json
 from unittest.mock import patch
 import pytest
-import json
 from click.testing import CliRunner
 from chatcli_gpt.chatcli import cli, find_recent_message
+from chatcli_gpt.conversation import Conversation
 
 
 @pytest.fixture(autouse=True)
@@ -262,14 +263,16 @@ def test_pyeval():
 
 
 def test_find_recent_message():
-    conversation = {
-        "messages": [
-            {"sender": "assistant", "message": "???"},
-            {"sender": "user", "message": "hello"},
-            {"sender": "assistant", "message": "hi"},
-            {"sender": "user", "message": "how are you?"},
-        ]
-    }
+    conversation = Conversation(
+        **{
+            "messages": [
+                {"sender": "assistant", "message": "???"},
+                {"sender": "user", "message": "hello"},
+                {"sender": "assistant", "message": "hi"},
+                {"sender": "user", "message": "how are you?"},
+            ]
+        }
+    )
 
     def predicate(msg):
         return msg["sender"] == "assistant"
