@@ -149,7 +149,7 @@ def chat(search_options, **kwargs):
     multiline = not quick
 
     if kwargs["retry"]:
-        conversation["messages"].pop()
+        conversation.messages.pop()
         add_answer(conversation, stream=kwargs["stream"])
         if kwargs["quick"]:
             return
@@ -177,7 +177,7 @@ def init(reinit):
 def add(personality, role, plugin, multiline, search_options, model):
     if any(search_options.values()):
         conversation = get_logged_conversation(**search_options)
-        messages = conversation["messages"]
+        messages = conversation.messages
     else:
         messages = []
 
@@ -236,7 +236,7 @@ def add_tag(new_tag, conversation):
     new_tags = [tag for tag in conversation.tags if tag != new_tag]
     new_tags.append(new_tag)
 
-    write_log(messages=conversation["messages"], tags=new_tags)
+    write_log(messages=conversation.messages, tags=new_tags)
 
 
 @cli.command(help="Remove tags from an conversation.")
@@ -244,7 +244,7 @@ def add_tag(new_tag, conversation):
 @select_conversation
 def untag(tag_to_remove, conversation):
     new_tags = [tag for tag in conversation.tags if tag != tag_to_remove]
-    write_log(messages=conversation["messages"], tags=new_tags)
+    write_log(messages=conversation.messages, tags=new_tags)
 
 
 @cli.command(help="Current tag")
@@ -268,9 +268,9 @@ def show(long, conversation, format_json):
         return
 
     if long:
-        messages = conversation["messages"]
+        messages = conversation.messages
     else:
-        messages = conversation["messages"][-1:]
+        messages = conversation.messages[-1:]
 
     for message in messages:
         prefix = ""
@@ -295,7 +295,7 @@ def log(conversations, limit, usage, cost, plugins, model, format_json):
         try:
             question = find_recent_message(lambda message: message["role"] != "assistant", conversation)["content"]
         except ValueError:
-            question = conversation["messages"][-1]["content"]
+            question = conversation.messages[-1]["content"]
         trimmed_message = question.strip().split("\n", 1)[0][:80]
 
         fields = []
@@ -303,8 +303,8 @@ def log(conversations, limit, usage, cost, plugins, model, format_json):
         fields.append(offset)
 
         if usage:
-            if conversation["usage"]:
-                total_tokens = conversation["usage"]["total_tokens"]
+            if conversation.usage:
+                total_tokens = conversation.usage["total_tokens"]
             else:
                 total_tokens = 0
             fields.append(f"{total_tokens: 5d}")
@@ -314,13 +314,13 @@ def log(conversations, limit, usage, cost, plugins, model, format_json):
 
         fields.append(trimmed_message)
         if conversation.tags:
-            fields.append(click.style(f"{','.join(conversation['tags'])}", fg="green"))
+            fields.append(click.style(",".join(conversation.tags), fg="green"))
 
         if plugins:
-            fields.append(f"{','.join(conversation['plugins'])}")
+            fields.append(",".join(conversation.plugins))
 
         if model:
-            fields.append(click.style(f"{conversation['model']}", fg="yellow"))
+            fields.append(click.style(conversation.model, fg="yellow"))
 
         click.echo(" ".join(fields))
 
@@ -333,7 +333,7 @@ def run_conversation(conversation, stream=True, multiline=True, quick=False):
         question = prompt(multiline=multiline)
         if not question:
             break
-        conversation["messages"].append({"role": "user", "content": question})
+        conversation.append({"role": "user", "content": question})
         add_answer(conversation, stream=stream)
 
         if quick:
@@ -436,14 +436,14 @@ def add_answer(conversation, stream=True):
 
 
 def conversation_cost(conversation):
-    if not conversation["usage"]:
+    if not conversation.usage:
         return 0
-    model = conversation["completion"]["model"]
+    model = conversation.completion["model"]
     if model not in USAGE_COSTS:
         model = "-".join(model.split("-")[:-1])
     model_price = USAGE_COSTS[model]
 
-    usage = conversation["usage"]
+    usage = conversation.usage
     return (
         model_price["prompt_tokens"] * usage["prompt_tokens"] / 1000
         + model_price["completion_tokens"] * usage["completion_tokens"] / 1000
@@ -451,7 +451,7 @@ def conversation_cost(conversation):
 
 
 def find_recent_message(predicate, conversation):
-    for message in reversed(conversation["messages"]):
+    for message in reversed(conversation.messages):
         if predicate(message):
             return message
     raise ValueError("No matching message found")
@@ -467,7 +467,7 @@ def show_usage(today):
 
     if today:
         conversations = [c for c in conversations if is_today(c)]
-    tokens = sum(conversation["usage"]["total_tokens"] for conversation in conversations if conversation["usage"])
+    tokens = sum(conversation.usage["total_tokens"] for conversation in conversations if conversation.usage)
 
     total_cost = sum(conversation_cost(conversation) for conversation in conversations)
     click.echo(f"Tokens: {tokens}")

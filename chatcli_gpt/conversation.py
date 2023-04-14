@@ -17,8 +17,3 @@ class Conversation:
         else:
             question = self.messages[-1]["content"]
         return search_term in question
-
-    def __getitem__(self, key):
-        if key in ("model",):
-            raise KeyError(key)
-        return self.__dict__[key]
