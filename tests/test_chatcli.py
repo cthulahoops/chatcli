@@ -294,3 +294,13 @@ def test_no_log():
     with runner.isolated_filesystem():
         with pytest.raises(FileNotFoundError):
             runner.invoke(cli, ["log"], catch_exceptions=False)
+
+
+def test_answer():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        runner.invoke(cli, ["init"], catch_exceptions=False)
+        result = runner.invoke(cli, ["add", "--role", "user"], input="What is your name?", catch_exceptions=False)
+        result = runner.invoke(cli, ["answer"], catch_exceptions=False)
+        assert result.exit_code == 0
+        assert "WHAT IS YOUR NAME?" in result.output

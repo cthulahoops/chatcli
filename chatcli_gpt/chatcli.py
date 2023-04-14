@@ -140,22 +140,20 @@ def chat(search_options, **kwargs):
     else:
         tags_to_apply = []
 
-    plugins = conversation["plugins"]
-    plugins.extend(kwargs["additional_plugins"])
+    conversation["plugins"].extend(kwargs["additional_plugins"])
+    conversation["tags"] = tags_to_apply
+    conversation["model"] = kwargs["model"] or conversation["model"] or "gpt-3.5-turbo"
 
-    model = kwargs["model"] or conversation["model"] or "gpt-3.5-turbo"
     quick = kwargs["quick"] or not os.isatty(0)
     multiline = not quick
 
     if kwargs["retry"]:
-        response = answer(request_messages[:-1], model, plugins, stream=kwargs["stream"], tags=tags_to_apply)
+        conversation["messages"].pop()
+        add_answer(conversation, stream=kwargs["stream"])
         if kwargs["quick"]:
             return
-        request_messages.append(response)
 
-    run_conversation(
-        request_messages, model, plugins, quick=quick, multiline=multiline, stream=kwargs["stream"], tags=tags_to_apply
-    )
+    run_conversation(conversation, multiline=multiline, quick=quick, stream=kwargs["stream"])
 
 
 @cli.command(help="Create initial conversation log.")
@@ -328,7 +326,7 @@ def log(conversations, limit, usage, cost, plugins, model, format_json):
         click.echo(" ".join(fields))
 
 
-def run_conversation(request_messages, model, plugins, tags=None, stream=True, multiline=True, quick=False):
+def run_conversation(conversation, stream=True, multiline=True, quick=False):
     if multiline and os.isatty(0):
         click.echo("(Finish input with <Alt-Enter> or <Esc><Enter>)")
 
@@ -336,9 +334,8 @@ def run_conversation(request_messages, model, plugins, tags=None, stream=True, m
         question = prompt(multiline=multiline)
         if not question:
             break
-        request_messages.append({"role": "user", "content": question})
-        response_message = answer(request_messages, model, plugins, stream=stream, tags=tags)
-        request_messages.append(response_message)
+        conversation["messages"].append({"role": "user", "content": question})
+        add_answer(conversation, stream=stream)
 
         if quick:
             break
@@ -400,41 +397,43 @@ def completion_usage(request_messages, model, completion):
     }
 
 
-def answer(request_messages, model, plugins, stream=True, tags=None):
+@cli.command(help="Add an answer to a question")
+@click.option("--stream/--sync", default=True, help="Stream or sync mode.")
+@select_conversation
+def answer(conversation, stream):
+    add_answer(conversation, stream=stream)
+
+
+def add_answer(conversation, stream=True):
     if stream:
-        completion = stream_request(request_messages, model)
+        completion = stream_request(conversation["messages"], conversation["model"])
     else:
-        completion = synchroneous_request(request_messages, model)
+        completion = synchroneous_request(conversation["messages"], conversation["model"])
 
     # TODO: handle multiple choices
     response_message = completion["choices"][0]["message"]
 
     write_log(
-        messages=request_messages + [response_message],
+        messages=conversation["messages"] + [response_message],
         completion=completion,
-        usage=completion_usage(request_messages, model, completion),
-        tags=tags,
-        plugins=plugins,
-        model=model,
+        usage=completion_usage(conversation["messages"], conversation["model"], completion),
+        tags=conversation["tags"],
+        plugins=conversation["plugins"],
+        model=conversation["model"],
     )
+    conversation["messages"].append(response_message)
 
     # TODO:
     # - [ ] wrote more plugins and see what's good interface for plugins
     # - [ ] middleware pattern for plugins
-    if plugins:
-        plugin_response = evaluate_plugins(response_message["content"], plugins)
+    if conversation["plugins"]:
+        plugin_response = evaluate_plugins(response_message["content"], conversation["plugins"])
 
         if plugin_response:
-            request_messages.append(response_message)
-            request_messages.append({"role": "user", "content": plugin_response})
+            conversation["messages"].append(response_message)
+            conversation["messages"].append({"role": "user", "content": plugin_response})
             click.echo(click.style(plugin_response, fg=(200, 180, 90)))
-            return answer(
-                request_messages,
-                model,
-                plugins,
-                stream=stream,
-                tags=tags,
-            )
+            return add_answer(conversation, stream=stream)
 
     return response_message
 
