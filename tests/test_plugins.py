@@ -14,6 +14,14 @@ def test_use_defined_function():
     assert evaluate_plugins(block("def double(x):\n  return 2 * x\ndouble(4)\n"), ["pyeval"]) == result("8")
 
 
+def test_python_exception():
+    assert "ZeroDivisionError: division by zero" in evaluate_plugins(block("print(3 / 0)"), ["pyeval"])
+
+
+def test_python_statement():
+    assert "ValueError" in evaluate_plugins(block("raise ValueError(7)"), ["pyeval"])
+
+
 def test_recursive_function():
     assert evaluate_plugins(
         block("def fact(n):\n if n <= 1:\n  return n\n return fact(n - 1) * n\nfact(6)\n"), ["pyeval"]

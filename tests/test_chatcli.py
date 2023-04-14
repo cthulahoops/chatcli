@@ -51,6 +51,11 @@ def test_chat_code(chatcli):
     assert "SAY HELLO IN PYTHON" in result.output
 
 
+def test_chat_sync(chatcli):
+    result = chatcli("chat --quick -p code --sync", input="Say hello in python")
+    assert "SAY HELLO IN PYTHON" in result.output
+
+
 def test_chat_with_file(chatcli):
     with open("test.txt", "w", encoding="utf-8") as fh:
         fh.write("Hello, world!")
@@ -66,7 +71,7 @@ def test_show_short(chatcli):
     assert "WHAT IS YOUR NAME?" in result.output
 
 
-def test_show_long(mocker, chatcli):
+def test_show_long(chatcli):
     chatcli("chat -q", input="What is your name?")
     result = chatcli("show -l")
     assert "expert linux user" in result.output
@@ -74,12 +79,28 @@ def test_show_long(mocker, chatcli):
     assert "WHAT IS YOUR NAME?" in result.output
 
 
-def test_log(mocker, chatcli):
+def test_log(chatcli):
     chatcli("chat --quick -p concise", input="What is your name?")
     chatcli("chat --quick -c", input="What is your quest?")
     result = chatcli("log")
     assert "2: What is your name?" in result.output
     assert "1: What is your quest?" in result.output
+
+
+def test_log_everything(chatcli):
+    chatcli("chat --quick -p concise", input="What is your name?")
+    chatcli("chat --quick -c", input="What is your quest?")
+    result = chatcli("log --usage --model --cost")
+    assert "What is your name?" in result.output
+    assert "What is your quest?" in result.output
+
+
+def test_log_json(chatcli):
+    chatcli("chat --quick -p concise", input="What is your name?")
+    chatcli("chat --quick -c", input="What is your quest?")
+    result = chatcli("log --json -l 2")
+    data = [json.loads(line) for line in result.output.splitlines()]
+    assert len(data) == 2
 
 
 def test_chat_log_search(chatcli):
