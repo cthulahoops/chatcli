@@ -223,7 +223,7 @@ def merge(conversations, personality):
 def list_tags():
     tags = set()
     for conversation in conversation_log():
-        for tag in conversation.get("tags", []):
+        for tag in conversation.tags:
             tags.add(tag)
     for tag in sorted(tags):
         click.echo(tag)
@@ -243,7 +243,7 @@ def add_tag(new_tag, conversation):
 @click.argument("tag_to_remove")
 @select_conversation
 def untag(tag_to_remove, conversation):
-    new_tags = [tag for tag in conversation.get("tags", []) if tag != tag_to_remove]
+    new_tags = [tag for tag in conversation.tags if tag != tag_to_remove]
     write_log(messages=conversation["messages"], tags=new_tags)
 
 
@@ -313,7 +313,7 @@ def log(conversations, limit, usage, cost, plugins, model, format_json):
             fields.append(f"${conversation_cost(conversation): 2.3f}")
 
         fields.append(trimmed_message)
-        if conversation.get("tags"):
+        if conversation.tags:
             fields.append(click.style(f"{','.join(conversation['tags'])}", fg="green"))
 
         if plugins:
