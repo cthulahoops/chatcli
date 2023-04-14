@@ -1,4 +1,5 @@
 from unittest import mock
+from click.testing import CliRunner
 from chatcli_gpt.plugins import evaluate_plugins, format_block
 
 
@@ -57,9 +58,18 @@ def test_evaluate_multiple_plugins():
     ) + "\n" + result("hi")
 
 
+def test_save_file():
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        assert evaluate_plugins(block("Hello, world", "", "SAVE('hello.txt')"), ["save"]) == result(
+            "Saved to: hello.txt"
+        )
+        assert open("hello.txt", encoding="utf-8").read() == "Hello, world\n"
+
+
 def result(result_text, error=""):
     return format_block({"result": result_text, "error": error})
 
 
-def block(code, block_type="python"):
-    return f"EVALUATE:\n```{block_type}\n{code}\n```\n"
+def block(code, block_type="python", block_header="EVALUATE:"):
+    return f"{block_header}\n```{block_type}\n{code}\n```\n"

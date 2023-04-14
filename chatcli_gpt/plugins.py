@@ -16,7 +16,7 @@ BLOCK_PATTERNS = {
     "pyeval": r"EVALUATE:\n+```(?:python)?\n(.*?)```",
     "search": r"SEARCH\((.*)\)",
     "wolfram": r"WOLFRAM\((.*)\)",
-    "save": r"SAVE\((.*)\)\n```\w*\n(.*?)```",
+    "save": r"SAVE\((.*?)\)\n```\w*\n(.*?)```",
 }
 
 
