@@ -122,6 +122,7 @@ def chat(search_options, **kwargs):
         search_options["tag"] = "^" + kwargs["personality"]
 
     conversation = get_logged_conversation(**search_options)
+
     request_messages = conversation["messages"]
 
     for filename in kwargs["file"]:
@@ -140,9 +141,9 @@ def chat(search_options, **kwargs):
     else:
         tags_to_apply = []
 
-    conversation["plugins"].extend(kwargs["additional_plugins"])
-    conversation["tags"] = tags_to_apply
-    conversation["model"] = kwargs["model"] or conversation["model"] or "gpt-3.5-turbo"
+    conversation.plugins.extend(kwargs["additional_plugins"])
+    conversation.tags = tags_to_apply
+    conversation.model = kwargs["model"] or conversation["model"] or "gpt-3.5-turbo"
 
     quick = kwargs["quick"] or not os.isatty(0)
     multiline = not quick

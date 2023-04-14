@@ -175,7 +175,7 @@ def conversation_log():
                 fh.write(json.dumps({"version": "0.4"}) + "\n")
                 for line in lines:
                     fh.write(line + "\n")
-            return [json.loads(line) for line in lines]
+            return [Conversation(**json.loads(line)) for line in lines]
         return [Conversation(**json.loads(line)) for line in fh]
 
 
