@@ -110,22 +110,27 @@ def filter_conversations(command):
 @click.option("--model", type=click.Choice(MODELS))
 @click.option("--plugin", "additional_plugins", multiple=True, help="Load a plugin.")
 @cli_search_options
-def chat(quick, continue_conversation, personality, file, retry, stream, model, additional_plugins, search_options):
-    if (continue_conversation or retry) and not search_options["offset"]:
+def chat(search_options, **kwargs):
+    if (kwargs["continue_conversation"] or kwargs["retry"]) and not search_options["offset"]:
         search_options["offset"] = 1
-    elif personality and not search_options["tag"] and not search_options["search"] and not search_options["offset"]:
-        search_options["tag"] = "^" + personality
+    elif (
+        kwargs["personality"]
+        and not search_options["tag"]
+        and not search_options["search"]
+        and not search_options["offset"]
+    ):
+        search_options["tag"] = "^" + kwargs["personality"]
 
     conversation = get_logged_conversation(**search_options)
     request_messages = conversation["messages"]
 
-    for filename in file:
+    for filename in kwargs["file"]:
         with open(filename, encoding="utf-8") as fh:
             file_contents = fh.read()
         request_messages.append(
             {
                 "role": "user",
-                "content": f"The file {file} contains:\n```\n{file_contents}```",
+                "content": f"The file {kwargs['file']} contains:\n```\n{file_contents}```",
             }
         )
 
@@ -136,27 +141,21 @@ def chat(quick, continue_conversation, personality, file, retry, stream, model, 
         tags_to_apply = []
 
     plugins = conversation["plugins"]
-    plugins.extend(additional_plugins)
+    plugins.extend(kwargs["additional_plugins"])
 
-    model = model or conversation["model"] or "gpt-3.5-turbo"
+    model = kwargs["model"] or conversation["model"] or "gpt-3.5-turbo"
+    quick = kwargs["quick"] or not os.isatty(0)
+    multiline = not quick
 
-    if retry:
-        response = answer(request_messages[:-1], model, plugins, stream=stream, tags=tags_to_apply)
-        if not quick:
-            request_messages.append(response)
-            run_conversation(request_messages, model, plugins, stream=stream, tags=tags_to_apply)
-    elif quick or not os.isatty(0):
-        run_conversation(
-            request_messages,
-            model,
-            plugins,
-            stream=stream,
-            tags=tags_to_apply,
-            quick=True,
-            multiline=False,
-        )
-    else:
-        run_conversation(request_messages, model, plugins, stream=stream, tags=tags_to_apply)
+    if kwargs["retry"]:
+        response = answer(request_messages[:-1], model, plugins, stream=kwargs["stream"], tags=tags_to_apply)
+        if kwargs["quick"]:
+            return
+        request_messages.append(response)
+
+    run_conversation(
+        request_messages, model, plugins, quick=quick, multiline=multiline, stream=kwargs["stream"], tags=tags_to_apply
+    )
 
 
 @cli.command(help="Create initial conversation log.")
