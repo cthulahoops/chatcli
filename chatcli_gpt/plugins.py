@@ -16,6 +16,7 @@ BLOCK_PATTERNS = {
     "pyeval": r"EVALUATE:\n+```(?:python)?\n(.*?)```",
     "search": r"SEARCH\((.*)\)",
     "wolfram": r"WOLFRAM\((.*)\)",
+    "save": r"SAVE\((.*)\)\n```\w*\n(.*?)```",
 }
 
 
@@ -39,6 +40,14 @@ def evaluate_plugins(response_text, plugins):
                     if search_term[0] in "\"'":
                         search_term = ast.literal_eval(search_term)
                     output = exec_wolfram(search_term)
+                case "save":
+                    filename, contents = block
+                    if filename[0] in "\"'":
+                        filename = ast.literal_eval(filename)
+                    with open(filename, "w", encoding="utf-8") as fh:
+                        fh.write(contents)
+                    output = {"result": f"Saved to: {filename}"}
+
             formatted_output.append(format_block(output))
     return "\n".join(formatted_output)
 
@@ -111,4 +120,4 @@ def format_block(output):
 
 if __name__ == "__main__":
     input_text = sys.stdin.read()
-    print(evaluate_plugins(input_text, ["search"]))
+    print(evaluate_plugins(input_text, sys.argv[1:]))

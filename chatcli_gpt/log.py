@@ -97,6 +97,20 @@ INITIAL_PERSONALITIES = {
             You will get the answer to your queries as a result block. Use the answers to help you answer the question.
         """,
     },
+    "save": {
+        "plugins": ["save"],
+        "model": "gpt-4",
+        "content": """
+            You can save file contents by using a save block.
+
+            For example:
+
+            SAVE("hello.py")
+            ```
+            print("hello, world!")
+            ```
+        """,
+    },
 }
 
 CHAT_LOG = os.environ.get("CHATCLI_LOGFILE", ".chatcli.log")
