@@ -3,3 +3,4 @@
 __pycache__
 __dist__
 dist
+coverage
