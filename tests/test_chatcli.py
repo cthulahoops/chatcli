@@ -37,9 +37,9 @@ def chatcli():
     runner = CliRunner()
     with runner.isolated_filesystem():
 
-        def chatcli(*args, catch_exceptions=False, **kwargs):
+        def chatcli(*args, catch_exceptions=False, expected_exit_code=0, **kwargs):
             result = runner.invoke(cli, *args, catch_exceptions=catch_exceptions, **kwargs)
-            assert result.exit_code == 0
+            assert result.exit_code == expected_exit_code
             return result
 
         chatcli("init")
@@ -218,11 +218,28 @@ def test_parents_log(chatcli):
     chatcli("log")
 
 
+def test_fresh_logfile_no_upgrade(chatcli):
+    chatcli("show")
+    assert not os.path.exists(".chatcli.log.bak.0_3")
+
+
 def test_no_log():
     runner = CliRunner()
     with runner.isolated_filesystem():
         with pytest.raises(FileNotFoundError):
             runner.invoke(cli, ["log"], catch_exceptions=False)
+
+
+def test_reinit(chatcli):
+    chatcli("init", expected_exit_code=1)
+
+
+def test_logfile_upgrade(chatcli):
+    with open(".chatcli.log", "w") as fh:
+        fh.write(json.dumps({"messages": [], "usage": {"request_tokens": 100}}) + "\n")
+        fh.write(json.dumps({"messages": [], "usage": {"total_tokens": 0}}) + "\n")
+    chatcli("show")
+    assert os.path.exists(".chatcli.log.bak.0_3")
 
 
 def test_answer(chatcli):

@@ -1,4 +1,5 @@
 import os
+import os.path
 import sys
 import shutil
 from pathlib import Path
@@ -116,6 +117,7 @@ INITIAL_PERSONALITIES = {
 }
 
 CHAT_LOG = os.environ.get("CHATCLI_LOGFILE", ".chatcli.log")
+LOG_FILE_VERSION = "0.4"
 
 
 def write_log(conversation, usage=None, completion=None, path=None):
@@ -142,6 +144,9 @@ def create_initial_log(reinit):
     if not reinit and Path(CHAT_LOG).exists():
         raise FileExistsError(CHAT_LOG)
 
+    with Path(CHAT_LOG).open("w", encoding="utf-8") as fh:
+        fh.write(json.dumps({"version": LOG_FILE_VERSION}) + "\n")
+
     for key, value in INITIAL_PERSONALITIES.items():
         write_log(
             Conversation(
@@ -166,7 +171,7 @@ def conversation_log():
             sys.stderr.write(f"Upgrading log file. Making backup in: {backup_file}\n")
             shutil.copyfile(log_path, backup_file)
             with log_path.open("w", encoding="utf-8") as fh:
-                fh.write(json.dumps({"version": "0.4"}) + "\n")
+                fh.write(json.dumps({"version": LOG_FILE_VERSION}) + "\n")
                 for line in lines:
                     fh.write(line + "\n")
             return [Conversation(**json.loads(line)) for line in lines]
@@ -198,22 +203,8 @@ def convert_log_pre_0_4(filename):
         for line in fh:
             data = json.loads(line)
 
-            if "request" in data:
-                if data["response"]:
-                    assistant_message = data["response"]["choices"][0]["message"]
-                    if "role" not in assistant_message:
-                        assistant_message["role"] = "assistant"
-                    messages = data["request"] + [assistant_message]
-                    usage = data["response"].get("usage")
-                else:
-                    messages = data["request"]
-                    usage = None
-            elif "response" in data:
-                messages = [data["response"]["choices"][0]["message"]]
-                usage = data["response"]["usage"]
-            else:
-                messages = data["messages"]
-                usage = data["usage"]
+            messages = data["messages"]
+            usage = data["usage"]
 
             if usage and "request_tokens" in usage:
                 usage["prompt_tokens"] = usage["request_tokens"]
