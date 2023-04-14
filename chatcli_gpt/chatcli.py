@@ -470,7 +470,7 @@ def show_usage(today):
     conversations = conversation_log()
 
     def is_today(conversation):
-        return dateutil.parser.parse(conversation["timestamp"]).date() == datetime.date.today()
+        return dateutil.parser.parse(conversation.timestamp).date() == datetime.date.today()
 
     if today:
         conversations = [c for c in conversations if is_today(c)]

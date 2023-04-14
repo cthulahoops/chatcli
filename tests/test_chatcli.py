@@ -2,6 +2,7 @@
 import os
 import json
 from unittest.mock import patch
+from datetime import datetime, timedelta
 import pytest
 from click.testing import CliRunner
 from chatcli_gpt.chatcli import cli, find_recent_message
@@ -116,6 +117,16 @@ def test_usage(chatcli):
     chatcli("chat", input="What is your name?")
     result = chatcli("usage")
     assert "Tokens: 82" in result.output
+    assert "Cost: $0.00" in result.output
+
+
+def test_usage_today(chatcli):
+    with patch("chatcli_gpt.log.datetime") as dt:
+        dt.datetime.now.return_value = datetime.now() - timedelta(seconds=100000)
+        chatcli("chat", input="What is your name?")
+    chatcli("chat", input="What is your name?")
+    result = chatcli("usage --today")
+    assert "Tokens: 41" in result.output
     assert "Cost: $0.00" in result.output
 
 
