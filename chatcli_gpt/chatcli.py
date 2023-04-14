@@ -289,8 +289,12 @@ def show(long, conversation, format_json):
 @click.option("--cost", is_flag=True, help="Show token cost")
 @click.option("--plugins", is_flag=True, help="Show enabled plugins")
 @click.option("--model", is_flag=True, help="Show model")
-def log(conversations, limit, usage, cost, plugins, model):
+@click.option("--format-json", "--json", is_flag=True, help="Output conversation in JSON format.")
+def log(conversations, limit, usage, cost, plugins, model, format_json):
     for offset, conversation in reversed(list(itertools.islice(conversations, limit))):
+        if format_json:
+            click.echo(json.dumps(conversation))
+            continue
         try:
             question = find_recent_message(lambda message: message["role"] != "assistant", conversation)["content"]
         except ValueError:
