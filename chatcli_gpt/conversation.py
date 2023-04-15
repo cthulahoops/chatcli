@@ -11,8 +11,8 @@ class Conversation:
         self.completion = completion
         self.timestamp = timestamp
 
-    def append(self, message):
-        self.messages.append(message)
+    def append(self, role, content):
+        self.messages.append({"role": role, "content": content})
 
     def __contains__(self, search_term):
         if len(self.messages) > 1:

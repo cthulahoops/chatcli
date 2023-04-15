@@ -127,12 +127,7 @@ def chat(search_options, **kwargs):
         with open(filename, encoding="utf-8") as fh:
             file_contents = fh.read()
 
-        conversation.append(
-            {
-                "role": "user",
-                "content": f"The file {filename!r} contains:\n```\n{file_contents}```",
-            }
-        )
+        conversation.append("user", f"The file {filename!r} contains:\n```\n{file_contents}```")
 
     tags = conversation.tags
     if tags and not is_personality(tags[-1]):
@@ -195,8 +190,8 @@ def add(personality, role, plugin, multiline, search_options, **kwargs):
 
     if multiline and os.isatty(0):
         click.echo("(Finish input with <Alt-Enter> or <Esc><Enter>)")
-    description = prompt(multiline=True)
-    conversation.append({"role": role, "content": description})
+    content = prompt(multiline=True)
+    conversation.append(role, content)
     write_log(conversation)
 
 
@@ -343,7 +338,7 @@ def run_conversation(conversation, stream=True, multiline=True, quick=False):
         question = prompt(multiline=multiline)
         if not question:
             break
-        conversation.append({"role": "user", "content": question})
+        conversation.append("user", question)
         add_answer(conversation, stream=stream)
 
         if quick:
@@ -421,7 +416,7 @@ def add_answer(conversation, stream=True):
 
     # TODO: handle multiple choices
     response_message = completion["choices"][0]["message"]
-    conversation.append(response_message)
+    conversation.append(**response_message)
     write_log(
         conversation,
         completion=completion,
@@ -435,7 +430,7 @@ def add_answer(conversation, stream=True):
         plugin_response = evaluate_plugins(response_message["content"], conversation.plugins)
 
         if plugin_response:
-            conversation.append({"role": "user", "content": plugin_response})
+            conversation.append("user", plugin_response)
             click.echo(click.style(plugin_response, fg=(200, 180, 90)))
             return add_answer(conversation, stream=stream)
 
