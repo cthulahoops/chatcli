@@ -30,7 +30,7 @@ pytest-cov = "^4.0.0"
 ruff = "^0.0.261"
 
 [tool.poetry.scripts]
-chatcli = "chatcli_gpt.chatcli:main"
+chatcli = "chatcli_gpt.cli:main"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

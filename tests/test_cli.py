@@ -5,7 +5,7 @@ from unittest.mock import patch
 from datetime import datetime, timedelta
 import pytest
 from click.testing import CliRunner
-from chatcli_gpt.chatcli import cli, find_recent_message
+from chatcli_gpt.cli import cli, find_recent_message
 from chatcli_gpt.conversation import Conversation
 
 
@@ -30,7 +30,7 @@ def fake_assistant(mocker):
             "usage": {"total_tokens": 41},
         }
 
-    mocker.patch("chatcli_gpt.chatcli.openai.ChatCompletion.create", advanced_ai)
+    mocker.patch("chatcli_gpt.cli.openai.ChatCompletion.create", advanced_ai)
 
 
 @pytest.fixture()
