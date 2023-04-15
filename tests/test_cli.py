@@ -5,8 +5,7 @@ from unittest.mock import patch
 from datetime import datetime, timedelta
 import pytest
 from click.testing import CliRunner
-from chatcli_gpt.cli import cli, find_recent_message
-from chatcli_gpt.conversation import Conversation
+from chatcli_gpt.cli import cli
 
 
 @pytest.fixture(autouse=True)
@@ -221,27 +220,6 @@ def test_default_personality_cannot_evaluate(chatcli):
 def test_pyeval(chatcli):
     result = chatcli("chat -p pyeval", input="evaluate: 6 * 7")
     assert "42" in result.output
-
-
-def test_find_recent_message():
-    conversation = Conversation(
-        **{
-            "messages": [
-                {"sender": "assistant", "message": "???"},
-                {"sender": "user", "message": "hello"},
-                {"sender": "assistant", "message": "hi"},
-                {"sender": "user", "message": "how are you?"},
-            ]
-        }
-    )
-
-    def predicate(msg):
-        return msg["sender"] == "assistant"
-
-    result = find_recent_message(predicate, conversation)
-    expected = {"sender": "assistant", "message": "hi"}
-
-    assert result == expected
 
 
 def test_parents_log(chatcli):

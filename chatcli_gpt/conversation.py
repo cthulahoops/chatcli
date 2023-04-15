@@ -23,3 +23,9 @@ class Conversation:
 
     def to_json(self):
         return json.dumps(self.__dict__)
+
+    def find(self, predicate):
+        for message in reversed(self.messages):
+            if predicate(message):
+                return message
+        raise ValueError("No matching message found")

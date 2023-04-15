@@ -298,7 +298,7 @@ def log(conversations, limit, usage, cost, plugins, model, format_json):
             click.echo(conversation.to_json())
             continue
         try:
-            question = find_recent_message(lambda message: message["role"] != "assistant", conversation)["content"]
+            question = conversation.find(lambda message: message["role"] != "assistant")["content"]
         except ValueError:
             question = conversation.messages[-1]["content"]
         trimmed_message = question.strip().split("\n", 1)[0][:80]
@@ -450,13 +450,6 @@ def conversation_cost(conversation):
         model_price["prompt_tokens"] * usage["prompt_tokens"] / 1000
         + model_price["completion_tokens"] * usage["completion_tokens"] / 1000
     )
-
-
-def find_recent_message(predicate, conversation):
-    for message in reversed(conversation.messages):
-        if predicate(message):
-            return message
-    raise ValueError("No matching message found")
 
 
 @cli.command(help="Display number of tokens and token cost.", name="usage")
