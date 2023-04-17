@@ -17,10 +17,7 @@ class Conversation:
         self.messages.append({"role": role, "content": content})
 
     def __contains__(self, search_term):
-        if len(self.messages) > 1:
-            question = self.messages[-2]["content"]
-        else:
-            question = self.messages[-1]["content"]
+        question = self.messages[-2]["content"] if len(self.messages) > 1 else self.messages[-1]["content"]
         return search_term in question
 
     def to_json(self):

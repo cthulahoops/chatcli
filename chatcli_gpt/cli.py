@@ -128,10 +128,7 @@ def chat(search_options, **kwargs):
         conversation.append("user", f"The file {filename!r} contains:\n```\n{file_contents}```")
 
     tags = conversation.tags
-    if tags and not is_personality(tags[-1]):
-        tags_to_apply = [tags[-1]]
-    else:
-        tags_to_apply = []
+    tags_to_apply = [tags[-1]] if tags and not is_personality(tags[-1]) else []
 
     conversation.plugins.extend(kwargs["additional_plugins"])
     conversation.tags = tags_to_apply
@@ -168,16 +165,10 @@ def init(reinit):
 @click.option("--plugin", "additional_plugins", multiple=True, help="Load a plugin.")
 @cli_search_options
 def add(personality, role, multiline, search_options, **kwargs):
-    if any(search_options.values()):
-        conversation = get_logged_conversation(**search_options)
-    else:
-        conversation = Conversation()
+    conversation = get_logged_conversation(**search_options) if any(search_options.values()) else Conversation()
 
     tags = conversation.tags
-    if tags and not is_personality(tags[-1]):
-        tags_to_apply = [tags[-1]]
-    else:
-        tags_to_apply = []
+    tags_to_apply = [tags[-1]] if tags and not is_personality(tags[-1]) else []
 
     conversation.plugins.extend(kwargs["additional_plugins"])
     conversation.tags = tags_to_apply
@@ -270,10 +261,7 @@ def show(long, conversation, format_json):
         click.echo(conversation.to_json())
         return
 
-    if long:
-        messages = conversation.messages
-    else:
-        messages = conversation.messages[-1:]
+    messages = conversation.messages if long else conversation.messages[-1:]
 
     for message in messages:
         prefix = ""
@@ -305,10 +293,7 @@ def log(conversations, limit, usage, cost, plugins, model, format_json):
         fields.append(click.style(f"{offset: 4d}:", fg="blue"))
 
         if usage:
-            if conversation.usage:
-                total_tokens = conversation.usage["total_tokens"]
-            else:
-                total_tokens = 0
+            total_tokens = conversation.usage["total_tokens"] if conversation.usage else 0
             fields.append(f"{total_tokens: 5d}")
 
         if cost:
