@@ -7,6 +7,7 @@ import ast
 import traceback
 import json
 import subprocess
+from pathlib import Path
 import duckduckgo_search
 import wolframalpha
 
@@ -44,7 +45,7 @@ def evaluate_plugins(response_text, plugins):
                     filename, contents = block
                     if filename[0] in "\"'":
                         filename = ast.literal_eval(filename)
-                    with open(filename, "w", encoding="utf-8") as fh:
+                    with Path(filename).open("w", encoding="utf-8") as fh:
                         fh.write(contents)
                     output = {"result": f"Saved to: {filename}"}
 
@@ -53,9 +54,7 @@ def evaluate_plugins(response_text, plugins):
 
 
 def extract_blocks(response_text, plugin):
-    block_pattern = BLOCK_PATTERNS[plugin]
-    matches = re.findall(block_pattern, response_text, re.DOTALL)
-    return matches
+    return re.findall(BLOCK_PATTERNS[plugin], response_text, re.DOTALL)
 
 
 def exec_bash(code):
@@ -86,7 +85,7 @@ def exec_python(code):
                     print(result)
             else:
                 exec(code, global_scope)
-        except Exception:  # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except, noqa: ble001
             print(traceback.format_exc())
 
     return {

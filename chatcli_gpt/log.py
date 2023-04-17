@@ -3,7 +3,7 @@ import os.path
 import sys
 import shutil
 from pathlib import Path
-import datetime
+from datetime import datetime, timezone
 import json
 from textwrap import dedent
 
@@ -124,8 +124,8 @@ LOG_FILE_VERSION = "0.4"
 
 def write_log(conversation, usage=None, completion=None, path=None):
     path = path or find_log()
-    timestamp = datetime.datetime.now().isoformat()
-    with open(path, "a", buffering=1, encoding="utf-8") as fh:
+    timestamp = datetime.now(timezone.utc).isoformat()
+    with Path(path).open("a", buffering=1, encoding="utf-8") as fh:
         fh.write(
             json.dumps(
                 {
@@ -136,9 +136,9 @@ def write_log(conversation, usage=None, completion=None, path=None):
                     "timestamp": timestamp,
                     "plugins": conversation.plugins or [],
                     "model": conversation.model,
-                }
+                },
             )
-            + "\n"
+            + "\n",
         )
 
 
@@ -172,12 +172,16 @@ def conversation_log():
             backup_file = log_path.with_suffix(".log.bak.0_3")
             sys.stderr.write(f"Upgrading log file. Making backup in: {backup_file}\n")
             shutil.copyfile(log_path, backup_file)
-            with log_path.open("w", encoding="utf-8") as fh:
-                fh.write(json.dumps({"version": LOG_FILE_VERSION}) + "\n")
-                for line in lines:
-                    fh.write(line + "\n")
+            rewrite_log(log_path, lines)
             return [Conversation(**json.loads(line)) for line in lines]
         return [Conversation(**json.loads(line)) for line in fh]
+
+
+def rewrite_log(path, lines):
+    with path.open("w", encoding="utf-8") as fh:
+        fh.write(json.dumps({"version": LOG_FILE_VERSION}) + "\n")
+        for line in lines:
+            fh.write(line + "\n")
 
 
 def find_log():
@@ -201,7 +205,7 @@ def search_conversations(offsets, search, tag):
 
 
 def convert_log_pre_0_4(filename):
-    with open(filename, "r", encoding="utf-8") as fh:
+    with Path(filename).open(encoding="utf-8") as fh:
         for line in fh:
             data = json.loads(line)
 
@@ -217,8 +221,8 @@ def convert_log_pre_0_4(filename):
 
             timestamp = (
                 data.get("timestamp")
-                or (completion and datetime.datetime.fromtimestamp(completion.get("created")).isoformat())
-                or datetime.datetime.now().isoformat()
+                or (completion and datetime.fromtimestamp(completion.get("created"), tz=timezone.utc).isoformat())
+                or datetime.now(tz=timezone.utc).isoformat()
             )
 
             assert isinstance(messages, list), data

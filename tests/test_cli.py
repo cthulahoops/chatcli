@@ -1,15 +1,16 @@
 # pylint: disable=redefined-outer-name
-import os
+from datetime import datetime, timedelta, timezone
 import json
+import os
+from pathlib import Path
 from unittest.mock import patch
-from datetime import datetime, timedelta
-import pytest
 from click.testing import CliRunner
+import pytest
 from chatcli_gpt.cli import cli
 
 
 @pytest.fixture(autouse=True)
-def fake_assistant(mocker):
+def _fake_assistant(mocker):
     def ai(message):
         if message.startswith("evaluate: "):
             message = message.replace("evaluate: ", "")
@@ -21,7 +22,7 @@ def fake_assistant(mocker):
         for word in ai(message).split(" "):
             yield {"choices": [{"delta": {"content": " " + word}, "index": 0}]}
 
-    def advanced_ai(model, messages, stream=False):
+    def advanced_ai(model, messages, *, stream=False):
         if stream:
             return (x for x in streaming_ai(model, messages[-1]["content"]))
         return {
@@ -29,7 +30,7 @@ def fake_assistant(mocker):
             "usage": {"total_tokens": 41},
         }
 
-    mocker.patch("chatcli_gpt.cli.openai.ChatCompletion.create", advanced_ai)
+    mocker.patch("chatcli_gpt.conversation.openai.ChatCompletion.create", advanced_ai)
 
 
 @pytest.fixture()
@@ -57,11 +58,11 @@ def test_chat_sync(chatcli):
 
 
 def test_chat_with_file(chatcli):
-    with open("test.txt", "w", encoding="utf-8") as fh:
+    with Path("test.txt").open("w", encoding="utf-8") as fh:
         fh.write("Hello, world!")
     chatcli("-f test.txt", input="What's in this file?")
     result = chatcli("show --json")
-    assert "The file 'test.txt' contains:\n```\nHello, world!```" == json.loads(result.output)["messages"][1]["content"]
+    assert json.loads(result.output)["messages"][1]["content"] == "The file 'test.txt' contains:\n```\nHello, world!```"
 
 
 def test_show_short(chatcli):
@@ -121,7 +122,7 @@ def test_usage(chatcli):
 
 def test_usage_today(chatcli):
     with patch("chatcli_gpt.log.datetime") as dt:
-        dt.datetime.now.return_value = datetime.now() - timedelta(seconds=100000)
+        dt.now.return_value = datetime.now(tz=timezone.utc) - timedelta(seconds=100000)
         chatcli("chat", input="What is your name?")
     chatcli("chat", input="What is your name?")
     result = chatcli("usage --today")
@@ -165,7 +166,7 @@ def test_tag_preserves_model(chatcli):
     chatcli("chat --quick -p concise --model gpt-4", input="What is your name?")
     chatcli("tag test_tag")
     result = chatcli("show --json")
-    assert "gpt-4" == json.loads(result.output)["model"]
+    assert json.loads(result.output)["model"] == "gpt-4"
 
 
 def test_tags(chatcli):
@@ -223,21 +224,20 @@ def test_pyeval(chatcli):
 
 
 def test_parents_log(chatcli):
-    os.mkdir("subdir")
-    os.chdir("subdir")
+    Path("subdir").mkdir()
+    os.chdir(Path("subdir"))
     chatcli("log")
 
 
 def test_fresh_logfile_no_upgrade(chatcli):
     chatcli("show")
-    assert not os.path.exists(".chatcli.log.bak.0_3")
+    assert not Path(".chatcli.log.bak.0_3").exists()
 
 
 def test_no_log():
     runner = CliRunner()
-    with runner.isolated_filesystem():
-        with pytest.raises(FileNotFoundError):
-            runner.invoke(cli, ["log"], catch_exceptions=False)
+    with runner.isolated_filesystem(), pytest.raises(FileNotFoundError):
+        runner.invoke(cli, ["log"], catch_exceptions=False)
 
 
 def test_reinit(chatcli):
@@ -245,11 +245,11 @@ def test_reinit(chatcli):
 
 
 def test_logfile_upgrade(chatcli):
-    with open(".chatcli.log", "w") as fh:
+    with Path(".chatcli.log").open("w", encoding="utf-8") as fh:
         fh.write(json.dumps({"messages": [], "usage": {"request_tokens": 100}}) + "\n")
         fh.write(json.dumps({"messages": [], "usage": {"total_tokens": 0}}) + "\n")
     chatcli("show")
-    assert os.path.exists(".chatcli.log.bak.0_3")
+    assert Path(".chatcli.log.bak.0_3").exists()
 
 
 def test_answer(chatcli):

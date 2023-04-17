@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest import mock
 from click.testing import CliRunner
 from chatcli_gpt.plugins import evaluate_plugins, format_block
@@ -25,7 +26,8 @@ def test_python_statement():
 
 def test_recursive_function():
     assert evaluate_plugins(
-        block("def fact(n):\n if n <= 1:\n  return n\n return fact(n - 1) * n\nfact(6)\n"), ["pyeval"]
+        block("def fact(n):\n if n <= 1:\n  return n\n return fact(n - 1) * n\nfact(6)\n"),
+        ["pyeval"],
     ) == result("720")
 
 
@@ -48,23 +50,31 @@ def test_bash():
 
 def test_multiple_blocks():
     assert evaluate_plugins(block("print(3 + 4)") + block("import math; math.sqrt(4)"), ["pyeval"]) == result(
-        7
+        7,
     ) + "\n" + result(2.0)
 
 
 def test_evaluate_multiple_plugins():
     assert evaluate_plugins(block("print(3 * 4)") + block("echo hi", "bash"), ["pyeval", "bash"]) == result(
-        12
+        12,
     ) + "\n" + result("hi")
 
 
 def test_save_file():
     runner = CliRunner()
     with runner.isolated_filesystem():
-        assert evaluate_plugins(block("Hello, world", "", "SAVE('hello.txt')"), ["save"]) == result(
-            "Saved to: hello.txt"
+        assert evaluate_plugins(
+            block(
+                "Hello, world",
+                "",
+                "SAVE('hello.txt')",
+            ),
+            ["save"],
+        ) == result(
+            "Saved to: hello.txt",
         )
-        assert open("hello.txt", encoding="utf-8").read() == "Hello, world\n"
+        with Path("hello.txt").open("r", encoding="utf-8") as fh:
+            assert fh.read() == "Hello, world\n"
 
 
 def result(result_text, error=""):

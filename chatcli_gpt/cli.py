@@ -122,7 +122,7 @@ def chat(search_options, **kwargs):
     conversation = get_logged_conversation(**search_options)
 
     for filename in kwargs["file"]:
-        with open(filename, encoding="utf-8") as fh:
+        with Path(filename).open(encoding="utf-8") as fh:
             file_contents = fh.read()
 
         conversation.append("user", f"The file {filename!r} contains:\n```\n{file_contents}```")
@@ -167,7 +167,7 @@ def init(reinit):
 @click.option("--model", type=click.Choice(MODELS), default="gpt-3.5-turbo")
 @click.option("--plugin", "additional_plugins", multiple=True, help="Load a plugin.")
 @cli_search_options
-def add(personality, role, plugin, multiline, search_options, **kwargs):
+def add(personality, role, multiline, search_options, **kwargs):
     if any(search_options.values()):
         conversation = get_logged_conversation(**search_options)
     else:
@@ -302,8 +302,7 @@ def log(conversations, limit, usage, cost, plugins, model, format_json):
         trimmed_message = question.strip().split("\n", 1)[0][:80]
 
         fields = []
-        offset = click.style(f"{offset: 4d}:", fg="blue")
-        fields.append(offset)
+        fields.append(click.style(f"{offset: 4d}:", fg="blue"))
 
         if usage:
             if conversation.usage:
@@ -328,7 +327,7 @@ def log(conversations, limit, usage, cost, plugins, model, format_json):
         click.echo(" ".join(fields))
 
 
-def run_conversation(conversation, stream=True, multiline=True, quick=False):
+def run_conversation(conversation, *, stream=True, multiline=True, quick=False):
     if multiline and os.isatty(0):
         click.echo("(Finish input with <Alt-Enter> or <Esc><Enter>)")
 
