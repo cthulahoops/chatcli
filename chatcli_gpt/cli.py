@@ -1,15 +1,13 @@
-import os.path
 import os
 import sys
 import itertools
 import functools
 import datetime
 import dateutil.parser
+from pathlib import Path
 import click
 from click_default_group import DefaultGroup
-import openai
 import prompt_toolkit
-import tiktoken
 
 from .log import (
     write_log,
@@ -345,60 +343,14 @@ def run_conversation(conversation, stream=True, multiline=True, quick=False):
             break
 
 
-def prompt(multiline=True):
+def prompt(*, multiline=True):
     if os.isatty(0):
         try:
             return prompt_toolkit.prompt(">> ", multiline=multiline, prompt_continuation=".. ").strip()
         except EOFError:
             return None
-        click.echo("....")
     else:
         return sys.stdin.read().strip()
-
-
-def synchroneous_request(request_messages, model):
-    completion = openai.ChatCompletion.create(model=model, messages=request_messages)
-    click.echo(completion["choices"][0]["message"]["content"])
-    return completion
-
-
-def stream_request(request_messages, model):
-    completion = {}
-    for chunk in openai.ChatCompletion.create(model=model, messages=request_messages, stream=True):
-        if not completion:
-            for key, value in chunk.items():
-                completion[key] = value
-            completion["choices"] = [{"message": {}} for choice in chunk["choices"]]
-
-        for choice in chunk["choices"]:
-            if choice.get("delta"):
-                for key, value in choice["delta"].items():
-                    message = completion["choices"][choice["index"]]["message"]
-                    if key not in message:
-                        message[key] = ""
-                    message[key] += value
-
-        content_chunk = chunk["choices"][0]["delta"].get("content")
-        if content_chunk:
-            click.echo(content_chunk, nl=False)
-
-    click.echo()
-    return completion
-
-
-def completion_usage(request_messages, model, completion):
-    if "usage" in completion:
-        return completion["usage"]
-
-    encoding = tiktoken.encoding_for_model(model)
-    request_text = " ".join("role: " + x["role"] + " content: " + x["content"] + "\n" for x in request_messages)
-    request_tokens = len(encoding.encode(request_text))
-    completion_tokens = len(encoding.encode(completion["choices"][0]["message"]["content"]))
-    return {
-        "prompt_tokens": request_tokens,
-        "completion_tokens": completion_tokens,
-        "total_tokens": request_tokens + completion_tokens,
-    }
 
 
 @cli.command(help="Add an answer to a question")
@@ -408,33 +360,15 @@ def answer(conversation, stream):
     add_answer(conversation, stream=stream)
 
 
-def add_answer(conversation, stream=True):
-    if stream:
-        completion = stream_request(conversation.messages, conversation.model)
-    else:
-        completion = synchroneous_request(conversation.messages, conversation.model)
-
-    # TODO: handle multiple choices
-    response_message = completion["choices"][0]["message"]
-    conversation.append(**response_message)
-    write_log(
-        conversation,
-        completion=completion,
-        usage=completion_usage(conversation.messages[:-1], conversation.model, completion),
-    )
-
-    # TODO:
-    # - [ ] wrote more plugins and see what's good interface for plugins
-    # - [ ] middleware pattern for plugins
-    if conversation.plugins:
-        plugin_response = evaluate_plugins(response_message["content"], conversation.plugins)
-
-        if plugin_response:
-            conversation.append("user", plugin_response)
-            click.echo(click.style(plugin_response, fg=(200, 180, 90)))
-            return add_answer(conversation, stream=stream)
-
-    return response_message
+def add_answer(conversation, *, stream=True):
+    while True:
+        response = conversation.complete(stream=stream, callback=click.echo)
+        write_log(conversation, completion=conversation.completion, usage=conversation.usage)
+        plugin_response = evaluate_plugins(response["content"], conversation.plugins)
+        if not plugin_response:
+            break
+        click.echo(click.style(plugin_response, fg=(200, 180, 90)))
+        conversation.append("user", plugin_response)
 
 
 def conversation_cost(conversation):
