@@ -2,7 +2,7 @@ import os
 import sys
 import itertools
 import functools
-import datetime
+from datetime import datetime, timezone
 import dateutil.parser
 from pathlib import Path
 import click
@@ -165,7 +165,7 @@ def init(reinit):
 @click.option("--plugin", "additional_plugins", multiple=True, help="Load a plugin.")
 @cli_search_options
 def add(personality, role, multiline, search_options, **kwargs):
-    conversation = get_logged_conversation(**search_options) if any(search_options.values()) else Conversation()
+    conversation = get_logged_conversation(**search_options) if any(search_options.values()) else Conversation({})
 
     tags = conversation.tags
     tags_to_apply = [tags[-1]] if tags and not is_personality(tags[-1]) else []
@@ -209,7 +209,7 @@ def merge(conversations, personality):
         merge_list(merged_conversation["plugins"], item.plugins)
         merged_conversation["model"] = item.model or merged_conversation["model"]
 
-    write_log(Conversation(**merged_conversation))
+    write_log(Conversation(merged_conversation))
 
 
 @cli.command(help="List tags.", name="tags")
@@ -376,7 +376,7 @@ def show_usage(today):
     conversations = conversation_log()
 
     def is_today(conversation):
-        return dateutil.parser.parse(conversation.timestamp).date() == datetime.date.today()
+        return dateutil.parser.parse(conversation.timestamp).date() == datetime.now(tz=timezone.utc).date()
 
     if today:
         conversations = [c for c in conversations if is_today(c)]

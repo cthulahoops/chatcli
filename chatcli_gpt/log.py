@@ -152,10 +152,12 @@ def create_initial_log(reinit):
     for key, value in INITIAL_PERSONALITIES.items():
         write_log(
             Conversation(
-                messages=[{"role": "system", "content": dedent(value["content"]).strip()}],
-                tags=["^" + key],
-                plugins=value.get("plugins"),
-                model=value.get("model"),
+                {
+                    "messages": [{"role": "system", "content": dedent(value["content"]).strip()}],
+                    "tags": ["^" + key],
+                    "plugins": value.get("plugins"),
+                    "model": value.get("model"),
+                },
             ),
             path=CHAT_LOG,
         )
@@ -173,8 +175,8 @@ def conversation_log():
             sys.stderr.write(f"Upgrading log file. Making backup in: {backup_file}\n")
             shutil.copyfile(log_path, backup_file)
             rewrite_log(log_path, lines)
-            return [Conversation(**json.loads(line)) for line in lines]
-        return [Conversation(**json.loads(line)) for line in fh]
+            return [Conversation(json.loads(line)) for line in lines]
+        return [Conversation(json.loads(line)) for line in fh]
 
 
 def rewrite_log(path, lines):

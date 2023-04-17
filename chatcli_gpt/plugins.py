@@ -85,7 +85,7 @@ def exec_python(code):
                     print(result)
             else:
                 exec(code, global_scope)
-        except Exception:  # pylint: disable=broad-except, noqa: ble001
+        except Exception:  # noqa: ble001
             print(traceback.format_exc())
 
     return {

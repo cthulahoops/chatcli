@@ -4,14 +4,14 @@ import tiktoken
 
 
 class Conversation:
-    def __init__(self, messages=None, plugins=None, tags=None, model=None, usage=None, completion=None, timestamp=None):
-        self.messages = messages or []
-        self.plugins = plugins or []
-        self.tags = tags or []
-        self.model = model
-        self.usage = usage
-        self.completion = completion
-        self.timestamp = timestamp
+    def __init__(self, conversation_data):
+        self.messages = conversation_data.get("messages", [])
+        self.plugins = conversation_data.get("plugins", [])
+        self.tags = conversation_data.get("tags", [])
+        self.model = conversation_data.get("model")
+        self.usage = conversation_data.get("usage")
+        self.completion = conversation_data.get("completion")
+        self.timestamp = conversation_data.get("timestamp")
 
     def append(self, role, content):
         self.messages.append({"role": role, "content": content})
