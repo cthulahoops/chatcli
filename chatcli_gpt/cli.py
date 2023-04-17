@@ -41,30 +41,23 @@ def cli():
     pass
 
 
-def cli_search_options(command):
-    @click.argument("offset", type=int, required=False)
-    @click.option("-s", "--search", help="Select by search term")
-    @click.option("-t", "--tag", help="Select by tag")
-    @functools.wraps(command)
-    def wrapper(*args, offset=None, search=None, tag=None, **kwargs):
-        return command(
-            *args,
-            search_options={"offset": offset, "search": search, "tag": tag},
-            **kwargs,
-        )
-
-    return wrapper
-
-
 def select_conversation(command):
     @click.argument("offset", type=int, required=False)
     @click.option("-s", "--search", help="Select by search term")
     @click.option("-t", "--tag", help="Select by tag")
     @functools.wraps(command)
     def wrapper(*args, offset=None, search=None, tag=None, **kwargs):
+        if (kwargs.get("continue_conversation") or kwargs.get("retry")) and not offset:
+            offset = 1
+        if kwargs.get("select_personality") and not (tag or search or offset):
+            tag = "^" + kwargs["select_personality"]
+        if kwargs.get("new") and not (tag or search or offset):
+            conversation = Conversation({})
+        else:
+            conversation = get_logged_conversation(offset=offset, search=search, tag=tag)
         return command(
             *args,
-            conversation=get_logged_conversation(offset=offset, search=search, tag=tag),
+            conversation=conversation,
             **kwargs,
         )
 
@@ -95,7 +88,7 @@ def filter_conversations(command):
     is_flag=True,
     help="Continue previous conversation.",
 )
-@click.option("-p", "--personality", default="concise")
+@click.option("-p", "--personality", "select_personality", default="concise", help="Personality to use.")
 @click.option(
     "-f",
     "--file",
@@ -107,20 +100,8 @@ def filter_conversations(command):
 @click.option("--stream/--sync", default=True, help="Stream or sync mode.")
 @click.option("--model", type=click.Choice(MODELS))
 @click.option("--plugin", "additional_plugins", multiple=True, help="Load a plugin.")
-@cli_search_options
-def chat(search_options, **kwargs):
-    if (kwargs["continue_conversation"] or kwargs["retry"]) and not search_options["offset"]:
-        search_options["offset"] = 1
-    elif (
-        kwargs["personality"]
-        and not search_options["tag"]
-        and not search_options["search"]
-        and not search_options["offset"]
-    ):
-        search_options["tag"] = "^" + kwargs["personality"]
-
-    conversation = get_logged_conversation(**search_options)
-
+@select_conversation
+def chat(conversation, **kwargs):
     for filename in kwargs["file"]:
         with Path(filename).open(encoding="utf-8") as fh:
             file_contents = fh.read()
@@ -158,15 +139,14 @@ def init(reinit):
 
 @cli.command(help="Add a message to a new or existing conversation.")
 @click.option("--multiline/--singleline", default=True)
-@click.option("-p", "--personality")
+@click.option("-p", "--personality", help="")
 @click.option("--role", type=click.Choice(["system", "user", "assistant"]), default="system")
 @click.option("--plugin", multiple="True", help="Activate plugins.")
 @click.option("--model", type=click.Choice(MODELS), default="gpt-3.5-turbo")
 @click.option("--plugin", "additional_plugins", multiple=True, help="Load a plugin.")
-@cli_search_options
-def add(personality, role, multiline, search_options, **kwargs):
-    conversation = get_logged_conversation(**search_options) if any(search_options.values()) else Conversation({})
-
+@click.option("--new/--continue", "-n/-c", default=True, help="Create a new conversation or continue.")
+@select_conversation
+def add(conversation, personality, role, multiline, **kwargs):
     tags = conversation.tags
     tags_to_apply = [tags[-1]] if tags and not is_personality(tags[-1]) else []
 
