@@ -142,7 +142,7 @@ def init(reinit):
 @click.option("-p", "--personality", help="")
 @click.option("--role", type=click.Choice(["system", "user", "assistant"]), default="system")
 @click.option("--plugin", multiple="True", help="Activate plugins.")
-@click.option("--model", type=click.Choice(MODELS), default="gpt-3.5-turbo")
+@click.option("--model", type=click.Choice(MODELS))
 @click.option("--plugin", "additional_plugins", multiple=True, help="Load a plugin.")
 @click.option("--new/--continue", "-n/-c", default=True, help="Create a new conversation or continue.")
 @select_conversation
@@ -250,15 +250,15 @@ def show(long, conversation, format_json):
         click.echo(click.style(prefix + message["content"], fg=MESSAGE_COLORS[message["role"]]))
 
 
-@cli.command(help="List all the questions we've asked")
+@cli.command(help="Display conversation log.")
 @filter_conversations
-@click.option("-l", "--limit", type=int, help="Limit number of results")
-@click.option("-u", "--usage", is_flag=True, help="Show token usage")
+@click.option("--limit", "-l", type=int, help="Limit number of results")
+@click.option("--usage", "-u", is_flag=True, help="Show token usage")
 @click.option("--cost", is_flag=True, help="Show token cost")
 @click.option("--plugins", is_flag=True, help="Show enabled plugins")
 @click.option("--model", is_flag=True, help="Show model")
-@click.option("--format-json", "--json", is_flag=True, help="Output conversation in JSON format.")
-def log(conversations, limit, usage, cost, plugins, model, format_json):
+@click.option("--json", "format_json", is_flag=True, help="Output conversation in JSON format.")
+def log(conversations, limit, format_json, **kwargs):
     for offset, conversation in reversed(list(itertools.islice(conversations, limit))):
         if format_json:
             click.echo(conversation.to_json())
@@ -272,21 +272,21 @@ def log(conversations, limit, usage, cost, plugins, model, format_json):
         fields = []
         fields.append(click.style(f"{offset: 4d}:", fg="blue"))
 
-        if usage:
+        if kwargs["usage"]:
             total_tokens = conversation.usage["total_tokens"] if conversation.usage else 0
             fields.append(f"{total_tokens: 5d}")
 
-        if cost:
+        if kwargs["cost"]:
             fields.append(f"${conversation_cost(conversation): 2.3f}")
 
         fields.append(trimmed_message)
         if conversation.tags:
             fields.append(click.style(",".join(conversation.tags), fg="green"))
 
-        if plugins:
+        if kwargs["plugins"]:
             fields.append(",".join(conversation.plugins))
 
-        if model:
+        if kwargs["model"]:
             fields.append(click.style(conversation.model, fg="yellow"))
 
         click.echo(" ".join(fields))
