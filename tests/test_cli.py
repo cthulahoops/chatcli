@@ -47,6 +47,18 @@ def chatcli():
         yield chatcli
 
 
+def test_chat_default(chatcli):
+    result = chatcli("--quick", input="What is your name?")
+    assert "WHAT IS YOUR NAME?" in result.output
+    result = chatcli("show --json")
+    data = json.loads(result.output)
+    assert (
+        data["messages"][0]["content"]
+        == "You are a helpful, expert linux user and programmer. You give concise answers. Provide code where possible."
+    )
+    assert data["model"] == "gpt-3.5-turbo"
+
+
 def test_chat_code(chatcli):
     result = chatcli("chat --quick -p code", input="Say hello in python")
     assert "SAY HELLO IN PYTHON" in result.output
