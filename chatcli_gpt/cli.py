@@ -51,6 +51,7 @@ def select_conversation(command):
             offset = 1
         if kwargs.get("select_personality") and not (tag or search or offset):
             tag = "^" + kwargs["select_personality"]
+        kwargs.pop("select_personality", None)
         if kwargs.get("new") and not (tag or search or offset):
             conversation = Conversation({})
         else:
@@ -240,6 +241,7 @@ def show_tag(conversation):
 
 
 @cli.command(help="Show a conversation.")
+@click.option("-p", "--personality", "select_personality", help="Select conversation by personality.")
 @select_conversation
 @click.option(
     "-l/-s",
