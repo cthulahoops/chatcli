@@ -190,6 +190,12 @@ def test_tags(chatcli):
     assert "test_tag2" in result.output
 
 
+def test_personalities(chatcli):
+    result = chatcli("personalities")
+    assert "default" in result.output
+    assert "wolfram" in result.output
+
+
 def test_tag_delete(chatcli):
     chatcli("chat --quick -p default", input="What is your name?")
     chatcli("tag test_tag")

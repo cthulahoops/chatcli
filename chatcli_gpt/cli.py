@@ -202,6 +202,17 @@ def list_tags():
         click.echo(tag)
 
 
+@cli.command(help="List personalities.", name="personalities")
+def list_personalities():
+    personalities = set()
+    for conversation in conversation_log():
+        for tag in conversation.tags:
+            if is_personality(tag):
+                personalities.add(tag[1:])
+    for personality in sorted(personalities):
+        click.echo(personality)
+
+
 @cli.command(help="Add tags to an conversation.", name="tag")
 @click.argument("new_tag")
 @select_conversation
