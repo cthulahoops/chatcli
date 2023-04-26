@@ -116,6 +116,20 @@ INITIAL_PERSONALITIES = {
             ```
         """,
     },
+    "image": {
+        "plugins": ["image"],
+        "model": "gpt-4",
+        "content": """
+            You can generate images by using an image block.
+
+            For example:
+
+            IMAGE("filename.png")
+            ```
+            A cartoon of a cute dog
+            ```
+        """,
+    },
 }
 
 CHAT_LOG = os.environ.get("CHATCLI_LOGFILE", ".chatcli.log")

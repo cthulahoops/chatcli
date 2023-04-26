@@ -10,6 +10,8 @@ import subprocess
 from pathlib import Path
 import duckduckgo_search
 import wolframalpha
+import requests
+import openai
 
 
 BLOCK_PATTERNS = {
@@ -18,6 +20,7 @@ BLOCK_PATTERNS = {
     "search": r"SEARCH\((.*)\)",
     "wolfram": r"WOLFRAM\((.*)\)",
     "save": r"SAVE\((.*?)\)\n```\w*\n(.*?)```",
+    "image": r"IMAGE\((.*?)\)\n```\w*\n(.*?)```",
 }
 
 
@@ -47,6 +50,13 @@ def evaluate_plugins(response_text, plugins):
                         filename = ast.literal_eval(filename)
                     with Path(filename).open("w", encoding="utf-8") as fh:
                         fh.write(contents)
+                    output = {"result": f"Saved to: {filename}"}
+                case "image":
+                    filename, prompt = block
+                    if filename[0] in "\"'":
+                        filename = ast.literal_eval(filename)
+                    with Path(filename).open("wb") as fh:
+                        fh.write(generate_image(prompt))
                     output = {"result": f"Saved to: {filename}"}
 
             formatted_output.append(format_block(output))
@@ -105,6 +115,13 @@ def exec_wolfram(query):
     client = wolframalpha.Client(api_key)
     result = client.query(query)
     return {"result": next(result.results).text}
+
+
+def generate_image(prompt):
+    image_api_response = openai.Image.create(prompt=prompt, n=1, size="256x256")
+    image_url = image_api_response["data"][0]["url"]
+    http_response = requests.get(image_url)
+    return http_response.content
 
 
 # TODO: Truncate the output to meet token requirement and save $$.
