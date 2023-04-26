@@ -81,7 +81,7 @@ def test_show_long(chatcli):
 
 
 def test_log(chatcli):
-    chatcli("chat --quick -p concise", input="What is your name?")
+    chatcli("chat --quick -p default", input="What is your name?")
     chatcli("chat --quick -c", input="What is your quest?")
     result = chatcli("log")
     assert "2: What is your name?" in result.output
@@ -89,7 +89,7 @@ def test_log(chatcli):
 
 
 def test_log_everything(chatcli):
-    chatcli("chat --quick -p concise", input="What is your name?")
+    chatcli("chat --quick -p default", input="What is your name?")
     chatcli("chat --quick -c", input="What is your quest?")
     result = chatcli("log --usage --model --cost")
     assert "What is your name?" in result.output
@@ -97,7 +97,7 @@ def test_log_everything(chatcli):
 
 
 def test_log_json(chatcli):
-    chatcli("chat --quick -p concise", input="What is your name?")
+    chatcli("chat --quick -p default", input="What is your name?")
     chatcli("chat --quick -c", input="What is your quest?")
     result = chatcli("log --json -l 2")
     data = [json.loads(line) for line in result.output.splitlines()]
@@ -105,7 +105,7 @@ def test_log_json(chatcli):
 
 
 def test_chat_log_search(chatcli):
-    chatcli("chat --quick -p concise", input="What is your name?")
+    chatcli("chat --quick -p default", input="What is your name?")
     chatcli("chat --quick -c", input="What is your quest?")
     result = chatcli("log -s name")
     assert "2: What is your name?" in result.output
@@ -155,7 +155,7 @@ def test_chat_retry(chatcli):
 
 
 def test_tag(chatcli):
-    chatcli("chat --quick -p concise", input="What is your name?")
+    chatcli("chat --quick -p default", input="What is your name?")
     chatcli("tag test_tag")
     result = chatcli("log -t test_tag")
     assert len(result.output.splitlines()) == 1
@@ -163,14 +163,14 @@ def test_tag(chatcli):
 
 
 def test_tag_preserves_model(chatcli):
-    chatcli("chat --quick -p concise --model gpt-4", input="What is your name?")
+    chatcli("chat --quick -p default --model gpt-4", input="What is your name?")
     chatcli("tag test_tag")
     result = chatcli("show --json")
     assert json.loads(result.output)["model"] == "gpt-4"
 
 
 def test_tags(chatcli):
-    chatcli("chat --quick -p concise", input="What is your name?")
+    chatcli("chat --quick -p default", input="What is your name?")
     chatcli("tag test_tag")
     chatcli("tag test_tag2")
     result = chatcli("tags")
@@ -179,7 +179,7 @@ def test_tags(chatcli):
 
 
 def test_tag_delete(chatcli):
-    chatcli("chat --quick -p concise", input="What is your name?")
+    chatcli("chat --quick -p default", input="What is your name?")
     chatcli("tag test_tag")
     chatcli("untag test_tag")
     result = chatcli("log -l 1")
@@ -187,14 +187,14 @@ def test_tag_delete(chatcli):
 
 
 def test_show_tag(chatcli):
-    chatcli("chat --quick -p concise", input="What is your name?")
+    chatcli("chat --quick -p default", input="What is your name?")
     chatcli("tag test_tag")
     result = chatcli("show-tag")
     assert "test_tag" in result.output
 
 
 def test_current_tag_follows_conversation(chatcli):
-    chatcli("chat --quick -p concise", input="What is your name?")
+    chatcli("chat --quick -p default", input="What is your name?")
     chatcli("tag test_tag")
     chatcli("chat --continue --quick", input="What is your quest?")
     result = chatcli("show-tag")

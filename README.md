@@ -63,7 +63,7 @@ chatcli --file myfile.txt
 
 You can also specify the personality that the chat bot should use with the `-p` or `--personality` option:
 ```
-chatcli --personality concise
+chatcli --personality pyeval
 ```
 
 ### Continue a conversation

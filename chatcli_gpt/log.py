@@ -10,7 +10,7 @@ from textwrap import dedent
 from .conversation import Conversation
 
 INITIAL_PERSONALITIES = {
-    "concise": {
+    "default": {
         "content": """
             You are a helpful, expert linux user and programmer. You give concise answers. Provide code where possible.
             """,

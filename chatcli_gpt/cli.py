@@ -88,7 +88,7 @@ def filter_conversations(command):
     is_flag=True,
     help="Continue previous conversation.",
 )
-@click.option("-p", "--personality", "select_personality", default="concise", help="Personality to use.")
+@click.option("-p", "--personality", "select_personality", default="default", help="Personality to use.")
 @click.option(
     "-f",
     "--file",
