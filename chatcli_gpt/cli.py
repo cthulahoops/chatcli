@@ -71,6 +71,9 @@ def filter_conversations(command):
     @click.option("-t", "--tag", help="Select by tag")
     @functools.wraps(command)
     def wrapper(*args, offsets=None, search=None, tag=None, **kwargs):
+        if kwargs.get("select_personality") and not (tag or search):
+            tag = "^" + kwargs["select_personality"]
+        kwargs.pop("select_personality", None)
         return command(
             *args,
             conversations=search_conversations(offsets=offsets, search=search, tag=tag),
@@ -264,6 +267,7 @@ def show(long, conversation, format_json):
 
 
 @cli.command(help="Display conversation log.")
+@click.option("-p", "--personality", "select_personality", help="Select conversation by personality.")
 @filter_conversations
 @click.option("--limit", "-l", type=int, help="Limit number of results")
 @click.option("--usage", "-u", is_flag=True, help="Show token usage")
