@@ -262,6 +262,13 @@ def test_reinit(chatcli):
     chatcli("init", expected_exit_code=1)
 
 
+def test_reinit_keeps_history(chatcli):
+    chatcli("add --role user", input="What is your name?")
+    chatcli("init --reinit")
+    result = chatcli("log")
+    assert "What is your name?" in result.output
+
+
 def test_logfile_upgrade(chatcli):
     with Path(".chatcli.log").open("w", encoding="utf-8") as fh:
         fh.write(json.dumps({"messages": [], "usage": {"request_tokens": 100}}) + "\n")

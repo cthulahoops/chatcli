@@ -160,8 +160,9 @@ def create_initial_log(reinit):
     if not reinit and Path(CHAT_LOG).exists():
         raise FileExistsError(CHAT_LOG)
 
-    with Path(CHAT_LOG).open("w", encoding="utf-8") as fh:
-        fh.write(json.dumps({"version": LOG_FILE_VERSION}) + "\n")
+    if not Path(CHAT_LOG).exists():
+        with Path(CHAT_LOG).open("w", encoding="utf-8") as fh:
+            fh.write(json.dumps({"version": LOG_FILE_VERSION}) + "\n")
 
     for key, value in INITIAL_PERSONALITIES.items():
         write_log(
