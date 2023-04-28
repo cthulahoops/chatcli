@@ -5,3 +5,4 @@ __dist__
 dist
 coverage
 .coverage
+*.png
