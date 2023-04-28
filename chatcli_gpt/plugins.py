@@ -12,6 +12,7 @@ import duckduckgo_search
 import wolframalpha
 import requests
 import openai
+import prompt_toolkit
 
 
 BLOCK_PATTERNS = {
@@ -135,5 +136,6 @@ def format_block(output):
 
 
 if __name__ == "__main__":
-    input_text = sys.stdin.read()
+    print("(Finish input with <Alt-Enter> or <Esc><Enter>)")
+    input_text = prompt_toolkit.prompt(multiline=True, prompt=">>> ", continuation_prompt="... ")
     print(evaluate_plugins(input_text, sys.argv[1:]))
