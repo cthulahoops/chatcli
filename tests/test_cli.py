@@ -7,6 +7,7 @@ from unittest.mock import patch
 from click.testing import CliRunner
 import pytest
 from chatcli_gpt.cli import cli
+import openai
 
 
 @pytest.fixture(autouse=True)
@@ -30,7 +31,7 @@ def _fake_assistant(mocker):
             "usage": {"total_tokens": 41},
         }
 
-    mocker.patch("chatcli_gpt.conversation.openai.ChatCompletion.create", advanced_ai)
+    mocker.patch("openai.ChatCompletion.create", advanced_ai)
 
 
 @pytest.fixture()

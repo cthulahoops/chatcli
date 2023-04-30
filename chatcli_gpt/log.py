@@ -42,7 +42,9 @@ def create_initial_log(reinit):
         with Path(CHAT_LOG).open("w", encoding="utf-8") as fh:
             fh.write(json.dumps({"version": LOG_FILE_VERSION}) + "\n")
 
-    with Path(resource_filename("chatcli_gpt", "data/default_log")).open(encoding="utf-8") as fh:
+    import pkg_resources
+
+    with Path(pkg_resources.resource_filename("chatcli_gpt", "data/default_log")).open(encoding="utf-8") as fh:
         for line in fh:
             write_log(Conversation(json.loads(line)), path=CHAT_LOG)
 

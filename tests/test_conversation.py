@@ -3,6 +3,7 @@ import signal
 from unittest.mock import Mock
 import pytest
 from chatcli_gpt.conversation import Conversation, stream_request
+import openai  # noqa: F401
 
 
 def test_find_recent_message():
@@ -41,7 +42,7 @@ def test_stream_interrupt(mocker):
         for word in ["jumped", "over", "the"]:
             yield {"choices": [{"delta": {"content": " " + word}, "index": 0}]}
 
-    mocker.patch("chatcli_gpt.conversation.openai.ChatCompletion.create", stream)
+    mocker.patch("openai.ChatCompletion.create", stream)
     callback = Mock()
     response = stream_request([], "gpt-4", callback)
 

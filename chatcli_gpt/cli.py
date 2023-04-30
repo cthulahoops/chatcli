@@ -345,7 +345,9 @@ def add_answer(conversation, *, stream=True):
     while True:
         response = conversation.complete(stream=stream, callback=click.echo)
         write_log(conversation, completion=conversation.completion, usage=conversation.usage)
-        plugin_response = evaluate_plugins(response["content"], conversation.plugins)
+        from . import plugins
+
+        plugin_response = plugins.evaluate_plugins(response["content"], conversation.plugins)
         if not plugin_response:
             break
         click.echo(click.style(plugin_response, fg=(200, 180, 90)))

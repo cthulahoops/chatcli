@@ -2,8 +2,6 @@ import json
 import signal
 from contextlib import contextmanager
 from dataclasses import dataclass
-import openai
-import tiktoken
 
 
 class Conversation:
@@ -51,6 +49,8 @@ def completion_usage(request_messages, model, completion):
     if "usage" in completion:
         return completion["usage"]
 
+    import tiktoken
+
     encoding = tiktoken.encoding_for_model(model)
     request_text = " ".join("role: " + x["role"] + " content: " + x["content"] + "\n" for x in request_messages)
     request_tokens = len(encoding.encode(request_text))
@@ -63,6 +63,8 @@ def completion_usage(request_messages, model, completion):
 
 
 def synchroneous_request(request_messages, model, callback):
+    import openai
+
     completion = openai.ChatCompletion.create(model=model, messages=request_messages)
     if callback:
         callback(completion["choices"][0]["message"]["content"])
@@ -88,6 +90,8 @@ def handle_sigint():
 
 
 def stream_request(request_messages, model, callback):
+    import openai
+
     completion = {}
     with handle_sigint() as state:
         for chunk in openai.ChatCompletion.create(model=model, messages=request_messages, stream=True):
