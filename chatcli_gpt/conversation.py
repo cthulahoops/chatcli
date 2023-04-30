@@ -1,4 +1,7 @@
 import json
+import signal
+from contextlib import contextmanager
+from dataclasses import dataclass
 import openai
 import tiktoken
 
@@ -66,25 +69,49 @@ def synchroneous_request(request_messages, model, callback):
     return completion
 
 
+@contextmanager
+def handle_sigint():
+    @dataclass
+    class State:
+        running: bool
+
+    state = State(running=True)
+
+    def handle_sigint(_signal, _frame):
+        state.running = False
+
+    try:
+        signal.signal(signal.SIGINT, handle_sigint)
+        yield state
+    finally:
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+
 def stream_request(request_messages, model, callback):
     completion = {}
-    for chunk in openai.ChatCompletion.create(model=model, messages=request_messages, stream=True):
-        if not completion:
-            for key, value in chunk.items():
-                completion[key] = value
-            completion["choices"] = [{"message": {}} for choice in chunk["choices"]]
+    with handle_sigint() as state:
+        for chunk in openai.ChatCompletion.create(model=model, messages=request_messages, stream=True):
+            if not completion:
+                for key, value in chunk.items():
+                    completion[key] = value
+                completion["choices"] = [{"message": {}} for choice in chunk["choices"]]
 
-        for choice in chunk["choices"]:
-            if choice.get("delta"):
-                for key, value in choice["delta"].items():
-                    message = completion["choices"][choice["index"]]["message"]
-                    if key not in message:
-                        message[key] = ""
-                    message[key] += value
+            for choice in chunk["choices"]:
+                if choice.get("delta"):
+                    for key, value in choice["delta"].items():
+                        message = completion["choices"][choice["index"]]["message"]
+                        if key not in message:
+                            message[key] = ""
+                        message[key] += value
 
-        content_chunk = chunk["choices"][0]["delta"].get("content")
-        if content_chunk and callback:
-            callback(content_chunk, nl=False)
+            content_chunk = chunk["choices"][0]["delta"].get("content")
+            if content_chunk and callback:
+                callback(content_chunk, nl=False)
 
-    callback()
+            if not state.running:
+                callback("\nInterrupted by user.\n")
+                break
+
+        callback()
+
     return completion
