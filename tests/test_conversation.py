@@ -1,4 +1,7 @@
-from chatcli_gpt.conversation import Conversation
+import os
+import signal
+from unittest.mock import Mock
+from chatcli_gpt.conversation import Conversation, stream_request
 
 
 def test_find_recent_message():
@@ -20,3 +23,23 @@ def test_find_recent_message():
     expected = {"role": "assistant", "message": "hi"}
 
     assert result == expected
+
+
+def test_stream_interrupt(mocker):
+    def stream(model, messages, stream):
+        assert model == "gpt-4"
+        assert messages == []
+        assert stream
+        yield {"model": model, "choices": [{"delta": {"role": "assistant"}, "index": 0}]}
+        for word in ["a", "quick", "brown"]:
+            yield {"choices": [{"delta": {"content": " " + word}, "index": 0}]}
+        os.kill(os.getpid(), signal.SIGINT)
+        for word in ["jumped", "over", "the"]:
+            yield {"choices": [{"delta": {"content": " " + word}, "index": 0}]}
+
+    mocker.patch("chatcli_gpt.conversation.openai.ChatCompletion.create", stream)
+    callback = Mock()
+    response = stream_request([], "gpt-4", callback)
+
+    assert response["choices"][0]["message"]["content"] == " a quick brown jumped"
+    assert callback.call_count == 6
