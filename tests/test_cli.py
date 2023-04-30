@@ -211,6 +211,11 @@ def test_show_tag(chatcli):
     assert "test_tag" in result.output
 
 
+def test_show_not_existing_tag(chatcli):
+    with pytest.raises(AssertionError):
+        chatcli("show --tag this_doesnt_exist")
+
+
 def test_current_tag_follows_conversation(chatcli):
     chatcli("chat --quick -p default", input="What is your name?")
     chatcli("tag test_tag")

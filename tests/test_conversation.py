@@ -1,6 +1,7 @@
 import os
 import signal
 from unittest.mock import Mock
+import pytest
 from chatcli_gpt.conversation import Conversation, stream_request
 
 
@@ -23,6 +24,9 @@ def test_find_recent_message():
     expected = {"role": "assistant", "message": "hi"}
 
     assert result == expected
+
+    with pytest.raises(ValueError, match="No matching message found"):
+        conversation.find(lambda msg: msg["role"] == "not_found")
 
 
 def test_stream_interrupt(mocker):
