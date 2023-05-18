@@ -106,6 +106,42 @@ Squeak!
 Squeak squeak!
 ```
 
+### The Log
+
+ChatCLI keeps an append only log file with a snapshot of every conversation.
+When you create or modify a conversation a new entry is added to the log.
+
+Create a log file in the current directory with:
+
+```
+chatcli init
+```
+
+Chatcli will search for a log file in the current directory, or in any parent
+directory. You can create a single log file in your home directory and store
+your full conversation history there, or create per project log files in
+project directories.
+
+View the log using the log command.
+
+```
+chatcli log --limit 10
+```
+
+You can select messages from the log using their `offset`. Most commands accept
+an offset. For continue from the third most recent entry in the log you can use
+
+```
+chatcli 3
+```
+
+Similiarly, you can search for a keyword using the `--search` option. For example,
+view the most recent conversation mentioning python with
+
+```
+chatcli show --search python
+```
+
 
 ### Personalities
 
@@ -171,21 +207,6 @@ chatcli add -p image -c --role assistant <<- 'END'
         Your image is in landscape.png!
 END
 ````
-
-
-### Show a conversation
-
-To show a previous conversation, use the `show`:
-```
-chatcli show
-```
-
-### List all conversations
-
-To list all the conversations that have been logged, use the `log` command:
-```
-chatcli log
-```
 
 ### Tag a conversation
 
