@@ -28,7 +28,8 @@ pip install chatcli-gpt
 
 2. Initialise the log:
 
-By default it would save logs in ".chatcli.log", could override by setting environment variable `CHATCLI_LOGFILE`.
+By default it would save logs in ".chatcli.log", could override by setting
+environment variable `CHATCLI_LOGFILE`.
 
 
 ```
@@ -122,6 +123,9 @@ directory. You can create a single log file in your home directory and store
 your full conversation history there, or create per project log files in
 project directories.
 
+By default logs are saved in ".chatcli.log". You can override by setting
+environment variable `CHATCLI_LOGFILE`.
+
 View the log using the log command.
 
 ```
@@ -145,7 +149,8 @@ chatcli show --search python
 
 ### Personalities
 
-A personality is just a conversation that is intended as the starting point of future conversations. You can see the default personality with:
+A personality is just a conversation that is intended as the starting point of
+future conversations. You can see the default personality with:
 
 ```
 chatcli show -p default
@@ -208,39 +213,52 @@ chatcli add -p image -c --role assistant <<- 'END'
 END
 ````
 
-### Tag a conversation
+### Tags
 
-You can tag a conversation using the `tag` command:
+Conversations can be tagged so you can name them and refer back to them later. You
+can add a tag to a conversation with:
+
 ```
 chatcli tag mytag
 ```
 
-### List all tags
+You can then continue the conversation with:
 
-To list all the tags that have been used, use the `tags` command:
 ```
-chatcli tags
-```
-
-### Filter by tag
-
-You can filter conversations by tag using the `-t` or `--tag` option:
-```
-chatcli log --tag mytag
+chatcli --tag mytag --continue
 ```
 
-### Remove a tag
+Whenever you extend a tagged conversation the most recently added tag is added to the
+new conversation snapshot. In this way you can use tags like branches in git. (View the
+active tag with `chatcli show-tag`)
 
-You can remove a tag from a conversation using the `untag` command:
+Remove a tag the `untag` command:
+
 ```
 chatcli untag mytag
 ```
 
+View all tags with the `tags` command:
+
+```
+chatcli tags
+```
+
+You'll see that personalities are listed with tags. A personality is just a tag that starts with
+a `^`. When you add a new message to a personality, the personality tag is not copied forward.
+
 ### Display usage
 
 To display the number of tokens used and the token cost, use the `usage` command:
+
 ```
 chatcli usage
+```
+
+Or, just view today's usage with:
+
+```
+chatcli usage --today
 ```
 
 ## Examples
