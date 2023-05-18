@@ -15,7 +15,6 @@ from .log import (
     conversation_log,
     create_initial_log,
 )
-from .plugins import evaluate_plugins
 from .conversation import Conversation
 
 MODELS = [
