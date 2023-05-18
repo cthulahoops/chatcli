@@ -28,10 +28,6 @@ pip install chatcli-gpt
 
 2. Initialise the log:
 
-By default it would save logs in ".chatcli.log", could override by setting
-environment variable `CHATCLI_LOGFILE`.
-
-
 ```
 chatcli init
 ```
