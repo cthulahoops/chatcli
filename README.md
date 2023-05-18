@@ -218,6 +218,57 @@ chatcli add -p image -c --role assistant <<- 'END'
 END
 ````
 
+### Plugins
+
+
+A plugin allows the answers from GPT to be fed to another program (eg: python,
+a search engine, etc.), and the result fed back to GPT.
+
+For example, we can use the `pyeval` to work out how many days are left in the year:
+
+````
+$ chatcli --personality pyeval
+(Finish input with <Alt-Enter> or <Esc><Enter>)
+>> How many days are left in the year?
+..
+EVALUATE:
+```
+from datetime import date, timedelta
+
+today = date.today()
+end_of_year = date(today.year, 12, 31)
+days_left = (end_of_year - today).days
+days_left
+```
+
+RESULT:
+```
+227
+```
+There are 227 days left in the year.
+````
+
+A plugin usually consists of the plugin itself and a personality that prompts
+gpt to explain how to interact with the plugin. Plugins usually require `gpt-4`
+to work well.
+
+As a user, you won't normally interact with the plugin directly, you can just
+specify a personality with a plugin enabled.
+
+Show the prompt for the pyeval plugin with:
+
+```
+chatcli show --personality pyeval
+```
+
+You could create this personality yourself by this and providing a prompt that
+explains the use of the plugin.
+
+```
+chatcli add --plugin pyeval --model gpt-4
+```
+
+
 ### Tags
 
 Conversations can be tagged so you can name them and refer back to them later. You
