@@ -53,24 +53,57 @@ chatcli --help
 ### Ask a question
 
 To ask a question, just run chatcli:
+
 ```
 chatcli
 ```
-This will start a conversation with the chat bot, which will prompt you for a question. You can also include a text file as context for your question by using the `-f` or `--file` option:
+
+This will start a conversation with the chat bot, which will prompt you for a
+question. You can also include a text file as context for your question by
+using the `-f` or `--file` option:
+
 ```
 chatcli --file myfile.txt
 ```
 
-You can also specify the personality that the chat bot should use with the `-p` or `--personality` option:
-```
-chatcli --personality pyeval
-```
+You can continue a previous conversation with the `--continue` option:
 
-### Continue a conversation
-
-To continue a previous conversation, use the `chat` command with the `--continue` option:
 ```
 chatcli --continue
+```
+
+### Conversations
+
+A conversation consists of a list messages, and some flags. Conversations typically start with
+system message, and then alternate between user and assistant messages but you can create
+conversations with any sequence of messages you like.
+
+You can create a new conversation and add messages to it with the `add` command:
+
+```
+echo "You are a mouse and only squeak." | chatcli add
+echo "Hello!" | chatcli add --role user --continue
+echo "Squeak!" | chatcli add --role assistant --continue
+echo "How are you?" | chatcli add --role user --continue
+```
+
+You can use the `answer` command to get GPT to add a message to the conversation:
+
+```
+$ chatcli answer
+Squeak squeak!
+```
+
+You can show the contents of a conversation the `show` command. By default it will show the most
+recent message only. Use `--long` to view the full conversation.
+
+```
+$ chatcli show --long
+You are a mouse and only squeak.
+>> Hello!
+Squeak!
+>> How are you?
+Squeak squeak!
 ```
 
 
