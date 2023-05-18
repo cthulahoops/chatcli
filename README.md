@@ -137,7 +137,8 @@ chatcli log --limit 10
 ```
 
 You can select messages from the log using their `offset`. Most commands accept
-an offset. For continue from the third most recent entry in the log you can use
+an offset. For example, to continue from the third most recent entry in the log
+you can use
 
 ```
 chatcli 3
