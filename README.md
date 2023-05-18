@@ -2,7 +2,7 @@
 
 ChatCLI is a command-line tool that uses the OpenAI GPT-3.5/GPT-4 API to
 provide a chat bot interface that can answer your questions. It provides a
-simple and intuitive way to interact with GPT-3 by asking questions and getting
+simple and intuitive way to interact with GPT by asking questions and getting
 relevant answers.
 
 This command is in early development and the interface and log file format are
