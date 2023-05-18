@@ -73,6 +73,14 @@ You can continue a previous conversation with the `--continue` option:
 chatcli --continue
 ```
 
+You can select the model you wish to use with the `--model` option, and retry
+the previous interaction with `--retry`. So to retry the previous question with GPT-4
+just do:
+
+```
+chatcli --retry --model gpt-4
+```
+
 ### Conversations
 
 A conversation consists of a list messages, and some flags. Conversations typically start with
