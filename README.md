@@ -73,6 +73,73 @@ To continue a previous conversation, use the `chat` command with the `--continue
 chatcli --continue
 ```
 
+
+### Personalities
+
+A personality is just a conversation that is intended as the starting point of future conversations. You can see the default personality with:
+
+```
+chatcli show -p default
+```
+
+and list all available personalities with:
+
+```
+chatcli personalities
+```
+
+You can start a conversation from with any personality with:
+
+```
+chatcli --personality checker
+```
+
+You can create a new personality using the `add` command with the `--personality` or `-p` flag.
+
+```
+$ chatcli add --personality checker
+(Finish input with <Alt-Enter> or <Esc><Enter>)
+>> You are spelling and grammar checker. Respond to every message with a list of
+spelling and grammatical errors. (If any.)
+..
+```
+
+You can also create more complex personalities by calling `add` repeatedly to build up longer
+conversation including examples of how the assistant should respond. For example, we can teach
+the image personality to generate images like this:
+
+````
+chatcli add --plugin image --model gpt-4 <<- END
+        You have the ability to create images from prompts using DALL-E.
+
+        To do this provide an image block with the filename to save the
+        image to and a prompt.
+END
+
+chatcli add -c --role user <<- 'END'
+        Generate a nice landscape.
+END
+
+chatcli add -c --role assistant <<- 'END'
+        IMAGE("landscape.png")
+        ```
+        A painting of the sun setting over mountains.
+        ```
+END
+
+chatcli add -c --role user <<- 'END'
+        RESULT:
+        ```
+        Image saved to landscape.png
+        ```
+END
+
+chatcli add -p image -c --role assistant <<- 'END'
+        Your image is in landscape.png!
+END
+````
+
+
 ### Show a conversation
 
 To show a previous conversation, use the `show`:
