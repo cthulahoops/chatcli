@@ -1,0 +1,6 @@
+TODO * Drop command
+TODO * Improve message for log file not initialised.
+TODO * Specify default model in environment.
+TODO * Control other model parameters (randomness)
+TODO * Support new functions API.
+TODO * Support goose AI.
