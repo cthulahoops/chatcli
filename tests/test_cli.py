@@ -32,6 +32,10 @@ def _fake_assistant(mocker):
         }
 
     mocker.patch("openai.ChatCompletion.create", advanced_ai)
+    mocker.patch(
+        "chatcli_gpt.conversation.completion_usage",
+        return_value={"prompt_tokens": 11, "completion_tokens": 10, "total_tokens": 41},
+    )
 
 
 @pytest.fixture()
