@@ -20,6 +20,8 @@ from .conversation import Conversation
 MODELS = [
     "gpt-4",
     "gpt-3.5-turbo",
+    "gpt-4-1106-preview",
+    "gpt-3.5-turbo-1106",
 ]
 
 MESSAGE_COLORS = {
@@ -30,8 +32,12 @@ MESSAGE_COLORS = {
 
 USAGE_COSTS = {
     "gpt-3.5-turbo": {"prompt_tokens": 0.002, "completion_tokens": 0.002},
+    "gpt-3.5-turbo-1106": {"prompt_tokens": 0.001, "completion_tokens": 0.002},
     "gpt-4": {"prompt_tokens": 0.03, "completion_tokens": 0.06},
+    "gpt-4-1106-preview": {"prompt_tokens": 0.01, "completion_tokens": 0.03},
 }
+
+DEFAULT_MODEL = "gpt-3.5-turbo-1106"
 
 
 @click.group(cls=DefaultGroup, default="chat", default_if_no_args=True)
@@ -116,7 +122,7 @@ def chat(conversation, **kwargs):
 
     conversation.plugins.extend(kwargs["additional_plugins"])
     conversation.tags = tags_to_apply
-    conversation.model = kwargs["model"] or conversation.model or "gpt-3.5-turbo"
+    conversation.model = kwargs["model"] or conversation.model or DEFAULT_MODEL
 
     quick = kwargs["quick"] or not os.isatty(0)
     multiline = not quick

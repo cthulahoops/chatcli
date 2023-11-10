@@ -61,7 +61,7 @@ def test_chat_default(chatcli):
         data["messages"][0]["content"]
         == "You are a helpful, expert linux user and programmer. You give concise answers. Provide code where possible."
     )
-    assert data["model"] == "gpt-3.5-turbo"
+    assert data["model"] == "gpt-3.5-turbo-1106"
 
 
 def test_chat_code(chatcli):
