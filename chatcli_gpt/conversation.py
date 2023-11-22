@@ -105,7 +105,7 @@ def stream_request(request_messages, model, callback):
     import openai
 
     with handle_sigint() as state:
-        return accumulate_deltas(
+        return accumulate_streaming_response(
             take_while_uninterrupted(
                 openai.ChatCompletion.create(
                     api_base=models.api_base(model),
@@ -127,7 +127,7 @@ def take_while_uninterrupted(iterator, state):
             break
 
 
-def accumulate_deltas(iterator, callback):
+def accumulate_streaming_response(iterator, callback):
     completion = {}
     for delta in iterator:
         completion = add_deltas(completion, delta)

@@ -2,7 +2,7 @@ import os
 import signal
 from unittest.mock import Mock
 import pytest
-from chatcli_gpt.conversation import Conversation, stream_request, accumulate_deltas
+from chatcli_gpt.conversation import Conversation, stream_request, accumulate_streaming_response
 import openai  # noqa: F401
 
 
@@ -50,10 +50,10 @@ def test_stream_interrupt(mocker):
     assert callback.call_count == 4
 
 
-def test_accumulate_deltas_empty_iterator():
+def test_accumulate_streaming_response_empty_iterator():
     iterator = []
     callback = None
-    result = accumulate_deltas(iterator, callback)
+    result = accumulate_streaming_response(iterator, callback)
     assert result == {}
 
 
@@ -101,7 +101,7 @@ def streaming_data():
     ]
 
 
-def test_accumulate_deltas_single_delta():
+def test_accumulate_streaming_response_single_delta():
     iterator = [
         {
             "choices": [
@@ -116,7 +116,7 @@ def test_accumulate_deltas_single_delta():
         },
     ]
     callback = None
-    result = accumulate_deltas(iterator, callback)
+    result = accumulate_streaming_response(iterator, callback)
     expected_result = {
         "choices": [
             {
@@ -137,7 +137,7 @@ def test_accumulate_multiple_deltas(streaming_data):
     streaming_data = [item for item in streaming_data if item["choices"]]
 
     callback = None
-    result = accumulate_deltas(streaming_data, callback)
+    result = accumulate_streaming_response(streaming_data, callback)
     expected_result = {
         "model": "fake_data",
         "choices": [
@@ -154,7 +154,7 @@ def test_accumulate_multiple_deltas(streaming_data):
 
 def test_accumulate_multiple_choices(streaming_data):
     callback = None
-    result = accumulate_deltas(streaming_data, callback)
+    result = accumulate_streaming_response(streaming_data, callback)
     expected_result = {
         "model": "fake_data",
         "choices": [
@@ -186,6 +186,6 @@ def test_callback_gets_message(streaming_data):
 
     buffer = StringIO()
 
-    accumulate_deltas(streaming_data, buffer.write)
+    accumulate_streaming_response(streaming_data, buffer.write)
 
     assert buffer.getvalue() == "Hello, how are you?"
