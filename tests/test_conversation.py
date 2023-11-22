@@ -47,4 +47,145 @@ def test_stream_interrupt(mocker):
     response = stream_request([], "gpt-4", callback)
 
     assert response["choices"][0]["message"]["content"] == " a quick brown jumped"
-    assert callback.call_count == 6
+    assert callback.call_count == 4
+
+
+def test_accumulate_deltas_empty_iterator():
+    iterator = []
+    callback = None
+    result = accumulate_deltas(iterator, callback)
+    assert result == {}
+
+
+@pytest.fixture()
+def streaming_data():
+    return [
+        {
+            "model": "fake_data",
+            "choices": [
+                {"index": 0, "delta": {"role": "user", "content": "Hello, "}},
+                {"index": 1, "delta": {"role": "user", "content": "write "}},
+                {"index": 2, "delta": {"role": "user", "content": "write "}},
+            ],
+        },
+        {
+            "choices": [
+                {"index": 0, "delta": {"content": "how "}},
+                {"index": 1, "delta": {"content": "a "}},
+                {"index": 2, "delta": {"role": "user", "content": "a "}},
+            ],
+        },
+        {
+            "choices": [
+                {"index": 0, "delta": {"content": "are "}},
+                {"index": 1, "delta": {"content": "simple "}},
+                {"index": 2, "delta": {"role": "user", "content": "poem"}},
+            ],
+        },
+        {
+            "choices": [
+                {"index": 0, "delta": {"content": "you?"}},
+                {"index": 1, "delta": {"role": "user", "content": "function "}},
+            ],
+        },
+        {
+            "choices": [
+                {"index": 1, "delta": {"role": "user", "content": "in "}},
+            ],
+        },
+        {
+            "choices": [
+                {"index": 1, "delta": {"role": "user", "content": "Python"}},
+            ],
+        },
+    ]
+
+
+def test_accumulate_deltas_single_delta():
+    iterator = [
+        {
+            "choices": [
+                {
+                    "index": 0,
+                    "delta": {
+                        "role": "user",
+                        "content": "Hello, how are you?",
+                    },
+                },
+            ],
+        },
+    ]
+    callback = None
+    result = accumulate_deltas(iterator, callback)
+    expected_result = {
+        "choices": [
+            {
+                "message": {
+                    "role": "user",
+                    "content": "Hello, how are you?",
+                },
+            },
+        ],
+    }
+    assert result == expected_result
+
+
+def test_accumulate_multiple_deltas(streaming_data):
+    for message in streaming_data:
+        message["choices"] = [item for item in message["choices"] if item["index"] == 0]
+
+    streaming_data = [item for item in streaming_data if item["choices"]]
+
+    callback = None
+    result = accumulate_deltas(streaming_data, callback)
+    expected_result = {
+        "model": "fake_data",
+        "choices": [
+            {
+                "message": {
+                    "role": "user",
+                    "content": "Hello, how are you?",
+                },
+            },
+        ],
+    }
+    assert result == expected_result
+
+
+def test_accumulate_multiple_choices(streaming_data):
+    callback = None
+    result = accumulate_deltas(streaming_data, callback)
+    expected_result = {
+        "model": "fake_data",
+        "choices": [
+            {
+                "message": {
+                    "role": "user",
+                    "content": "Hello, how are you?",
+                },
+            },
+            {
+                "message": {
+                    "role": "user",
+                    "content": "write a simple function in Python",
+                },
+            },
+            {
+                "message": {
+                    "role": "user",
+                    "content": "write a poem",
+                },
+            },
+        ],
+    }
+    assert result == expected_result
+
+
+def test_callback_gets_message(streaming_data):
+    from io import StringIO
+
+    buffer = StringIO()
+
+    accumulate_deltas(streaming_data, buffer.write)
+
+    assert buffer.getvalue() == "Hello, how are you?"
