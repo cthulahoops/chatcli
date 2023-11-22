@@ -23,7 +23,7 @@ def _fake_assistant(mocker):
         for word in ai(message).split(" "):
             yield {"choices": [{"delta": {"content": " " + word}, "index": 0}]}
 
-    def advanced_ai(model, messages, *, stream=False):
+    def advanced_ai(model, messages, *, stream=False, api_key=None, api_base=None):
         if stream:
             return (x for x in streaming_ai(model, messages[-1]["content"]))
         return {
@@ -183,7 +183,7 @@ def test_tag_preserves_model(chatcli):
     chatcli("chat --quick -p default --model gpt-4", input="What is your name?")
     chatcli("tag test_tag")
     result = chatcli("show --json")
-    assert json.loads(result.output)["model"] == "gpt-4"
+    assert json.loads(result.output)["model"] == "gpt-4-1106-preview"
 
 
 def test_tags(chatcli):
@@ -301,4 +301,4 @@ def test_merge(chatcli):
     data = json.loads(result.stdout)
     assert data["tags"] == ["^test"]
     assert data["plugins"] == ["a", "b"]
-    assert data["model"] == "gpt-4"
+    assert data["model"] == "gpt-4-1106-preview"

@@ -1,7 +1,10 @@
 import json
 import signal
+from copy import copy
 from contextlib import contextmanager
 from dataclasses import dataclass
+
+from . import models
 
 
 class Conversation:
@@ -51,7 +54,11 @@ def completion_usage(request_messages, model, completion):
 
     import tiktoken
 
-    encoding = tiktoken.encoding_for_model(model)
+    try:
+        encoding = tiktoken.encoding_for_model(model)
+    except KeyError:
+        encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
+
     request_text = " ".join("role: " + x["role"] + " content: " + x["content"] + "\n" for x in request_messages)
     request_tokens = len(encoding.encode(request_text))
     completion_tokens = len(encoding.encode(completion["choices"][0]["message"]["content"]))
@@ -65,7 +72,12 @@ def completion_usage(request_messages, model, completion):
 def synchroneous_request(request_messages, model, callback):
     import openai
 
-    completion = openai.ChatCompletion.create(model=model, messages=request_messages)
+    completion = openai.ChatCompletion.create(
+        api_base=models.api_base(model),
+        api_key=models.api_key(model),
+        model=models.api_model_name(model),
+        messages=request_messages,
+    )
     if callback:
         callback(completion["choices"][0]["message"]["content"])
     return completion

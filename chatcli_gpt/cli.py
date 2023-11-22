@@ -16,13 +16,9 @@ from .log import (
     create_initial_log,
 )
 from .conversation import Conversation
+from . import models
 
-MODELS = [
-    "gpt-4",
-    "gpt-3.5-turbo",
-    "gpt-4-1106-preview",
-    "gpt-3.5-turbo-1106",
-]
+from .models import MODELS
 
 MESSAGE_COLORS = {
     "user": (186, 85, 211),
@@ -30,14 +26,24 @@ MESSAGE_COLORS = {
     "assistant": None,
 }
 
-USAGE_COSTS = {
-    "gpt-3.5-turbo": {"prompt_tokens": 0.002, "completion_tokens": 0.002},
-    "gpt-3.5-turbo-1106": {"prompt_tokens": 0.001, "completion_tokens": 0.002},
-    "gpt-4": {"prompt_tokens": 0.03, "completion_tokens": 0.06},
-    "gpt-4-1106-preview": {"prompt_tokens": 0.01, "completion_tokens": 0.03},
-}
-
 DEFAULT_MODEL = "gpt-3.5-turbo-1106"
+
+
+class PartialChoice(click.Choice):
+    def convert(self, value, param, ctx):
+        for choice in self.choices:
+            if value in choice:
+                return choice
+        return self.fail(
+            f"invalid choice: {value}. (choose from {', '.join(self.choices)})",
+            param,
+            ctx,
+        )
+
+
+MODEL_CHOICE = PartialChoice([model["id"] for model in MODELS])
+
+USAGE_COSTS = {model["id"]: model["pricing"] for model in MODELS}
 
 
 @click.group(cls=DefaultGroup, default="chat", default_if_no_args=True)
@@ -107,7 +113,7 @@ def filter_conversations(command):
 )
 @click.option("-r", "--retry", is_flag=True, help="Retry previous question")
 @click.option("--stream/--sync", default=True, help="Stream or sync mode.")
-@click.option("--model", type=click.Choice(MODELS))
+@click.option("-m", "--model", type=MODEL_CHOICE)
 @click.option("--plugin", "additional_plugins", multiple=True, help="Load a plugin.")
 @select_conversation
 def chat(conversation, **kwargs):
@@ -151,7 +157,7 @@ def init(reinit):
 @click.option("-p", "--personality", help="")
 @click.option("--role", type=click.Choice(["system", "user", "assistant"]), default="system")
 @click.option("--plugin", multiple="True", help="Activate plugins.")
-@click.option("--model", type=click.Choice(MODELS))
+@click.option("-m", "--model", type=MODEL_CHOICE)
 @click.option("--plugin", "additional_plugins", multiple=True, help="Load a plugin.")
 @click.option("--new/--continue", "-n/-c", default=True, help="Create a new conversation or continue.")
 @select_conversation
@@ -314,6 +320,9 @@ def log(conversations, limit, format_json, **kwargs):
         click.echo(" ".join(fields))
 
 
+cli.add_command(models.models)
+
+
 def run_conversation(conversation, *, stream=True, multiline=True, quick=False):
     if multiline and os.isatty(0):
         click.echo("(Finish input with <Alt-Enter> or <Esc><Enter>)")
@@ -348,7 +357,7 @@ def answer(conversation, stream):
 
 def add_answer(conversation, *, stream=True):
     while True:
-        response = conversation.complete(stream=stream, callback=click.echo)
+        response = conversation.complete(stream=stream, callback=lambda token: click.echo(token, nl=False))
         write_log(conversation, completion=conversation.completion, usage=conversation.usage)
         from . import plugins
 
@@ -363,14 +372,14 @@ def conversation_cost(conversation):
     if not conversation.usage:
         return 0
     model = conversation.completion["model"]
-    if model not in USAGE_COSTS:
-        model = "-".join(model.split("-")[:-1])
-    model_price = USAGE_COSTS[model]
+    model_price = (
+        USAGE_COSTS.get(model) or USAGE_COSTS.get("-".join(model.split("-")[:-1])) or USAGE_COSTS["openrouter/" + model]
+    )
 
     usage = conversation.usage
     return (
-        model_price["prompt_tokens"] * usage["prompt_tokens"] / 1000
-        + model_price["completion_tokens"] * usage["completion_tokens"] / 1000
+        float(model_price["prompt"]) * usage["prompt_tokens"] / 1000
+        + float(model_price["completion"]) * usage["completion_tokens"] / 1000
     )
 
 

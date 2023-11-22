@@ -2,7 +2,7 @@ import os
 import signal
 from unittest.mock import Mock
 import pytest
-from chatcli_gpt.conversation import Conversation, stream_request
+from chatcli_gpt.conversation import Conversation, stream_request, accumulate_deltas
 import openai  # noqa: F401
 
 
@@ -31,7 +31,7 @@ def test_find_recent_message():
 
 
 def test_stream_interrupt(mocker):
-    def stream(model, messages, stream):
+    def stream(model, messages, stream, **_kwargs):
         assert model == "gpt-4"
         assert messages == []
         assert stream
