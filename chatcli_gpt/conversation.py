@@ -105,17 +105,15 @@ def stream_request(request_messages, model, callback):
     import openai
 
     with handle_sigint() as state:
+        stream = openai.ChatCompletion.create(
+            api_base=models.api_base(model),
+            api_key=models.api_key(model),
+            model=models.api_model_name(model),
+            messages=request_messages,
+            stream=True,
+        )
         return accumulate_streaming_response(
-            take_while_uninterrupted(
-                openai.ChatCompletion.create(
-                    api_base=models.api_base(model),
-                    api_key=models.api_key(model),
-                    model=models.api_model_name(model),
-                    messages=request_messages,
-                    stream=True,
-                ),
-                state,
-            ),
+            take_while_uninterrupted(stream, state),
             callback,
         )
 
