@@ -5,7 +5,6 @@ import shutil
 from pathlib import Path
 from datetime import datetime, timezone
 import json
-from pkg_resources import resource_filename
 
 from .conversation import Conversation
 
@@ -42,9 +41,11 @@ def create_initial_log(reinit):
         with Path(CHAT_LOG).open("w", encoding="utf-8") as fh:
             fh.write(json.dumps({"version": LOG_FILE_VERSION}) + "\n")
 
-    import pkg_resources
+    from importlib import resources
 
-    with Path(pkg_resources.resource_filename("chatcli_gpt", "data/default_log")).open(encoding="utf-8") as fh:
+    default_log = resources.path("chatcli_gpt", "data") / "default_log"
+
+    with Path(default_log).open(encoding="utf-8") as fh:
         for line in fh:
             write_log(Conversation(json.loads(line)), path=CHAT_LOG)
 
