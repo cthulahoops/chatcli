@@ -92,30 +92,63 @@ def handle_sigint():
 def stream_request(request_messages, model, callback):
     import openai
 
-    completion = {}
     with handle_sigint() as state:
-        for chunk in openai.ChatCompletion.create(model=model, messages=request_messages, stream=True):
-            if not completion:
-                for key, value in chunk.items():
-                    completion[key] = value
-                completion["choices"] = [{"message": {}} for choice in chunk["choices"]]
+        return accumulate_deltas(
+            take_while_uninterrupted(
+                openai.ChatCompletion.create(
+                    api_base=models.api_base(model),
+                    api_key=models.api_key(model),
+                    model=models.api_model_name(model),
+                    messages=request_messages,
+                    stream=True,
+                ),
+                state,
+            ),
+            callback,
+        )
 
-            for choice in chunk["choices"]:
-                if choice.get("delta"):
-                    for key, value in choice["delta"].items():
-                        message = completion["choices"][choice["index"]]["message"]
-                        if key not in message:
-                            message[key] = ""
-                        message[key] += value
 
-            content_chunk = chunk["choices"][0]["delta"].get("content")
-            if content_chunk and callback:
-                callback(content_chunk, nl=False)
+def take_while_uninterrupted(iterator, state):
+    for item in iterator:
+        yield item
+        if not state.running:
+            break
 
-            if not state.running:
-                callback("\nInterrupted by user.\n")
-                break
 
-        callback()
+def accumulate_deltas(iterator, callback):
+    completion = {}
+    for delta in iterator:
+        completion = add_deltas(completion, delta)
+
+        choice_zero = delta["choices"][0]
+        if choice_zero and choice_zero["index"] == 0 and choice_zero.get("delta").get("content") and callback:
+            callback(choice_zero.get("delta").get("content"))
 
     return completion
+
+
+def add_deltas(completion, chunk):
+    if not completion:
+        completion = copy(chunk)
+        completion["choices"] = [{"message": {}} for choice in chunk["choices"]]
+
+    choices = completion["choices"]
+
+    for choice in chunk["choices"]:
+        if "delta" not in choice:
+            continue
+
+        idx = choice["index"]
+        choices[idx]["message"] = append_delta(choices[idx]["message"], choice["delta"])
+
+    return completion
+
+
+def append_delta(message, delta):
+    result = copy(message)
+    for key, value in delta.items():
+        if key == "role":
+            result[key] = value
+        else:
+            result[key] = message.get(key, "") + value
+    return result
