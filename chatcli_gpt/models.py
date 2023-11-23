@@ -1,15 +1,16 @@
 import os
+import sys
 from pathlib import Path
 import json
 
 import click
 from click_default_group import DefaultGroup
 
-OPEN_ROUTER_API_KEY = os.environ.get("OPEN_ROUTER_API_KEY")
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 
 MODEL_CACHE = Path("/home/akelly/.chatcli.models.json")
 
-OPEN_AI_MODELS = [
+OPENAI_MODELS = [
     "gpt-4-1106-preview",
     "gpt-3.5-turbo-1106",
     "gpt-4",
@@ -17,7 +18,7 @@ OPEN_AI_MODELS = [
 ]
 
 # Create the above LIST but in the format [{ "id": "gpt-4-1106-preview" }, ...]
-OPEN_AI_MODELS = [
+OPENAI_MODELS = [
     {
         "id": "gpt-4-1106-preview",
         "pricing": {"prompt": 0.01, "completion": 0.03},
@@ -36,42 +37,42 @@ OPEN_AI_MODELS = [
     },
 ]
 
-MODELS = OPEN_AI_MODELS
+MODELS = OPENAI_MODELS
 if MODEL_CACHE.exists():
     MODELS += json.load(MODEL_CACHE.open())
 
 
-@click.group(cls=DefaultGroup, default="list", default_if_no_args=True)
+@click.group(cls=DefaultGroup, default="list", default_if_no_args=True, help="View and manage models")
 def models():
     pass
 
 
-@models.command(name="list")
+@models.command(name="list", help="List available models")
 def list_models():
     for model in MODELS:
         click.echo(f"{model['id']}")
 
 
-@models.command(name="fetch")
-def fetch():
-    models = list(fetch_models())
-    json.dump(models, MODEL_CACHE.open("w"))
+@models.command(name="fetch", help="Fetch models from a source.")
+@click.argument("source", type=click.Choice(choices=["openrouter"]))
+def fetch(source):
+    if source == "openrouter":
+        if not OPENROUTER_API_KEY:
+            click.echo("OPENROUTER_API_KEY not set", file=sys.stderr)
+            sys.exit(1)
+        models = list(fetch_openrouter_models())
+        json.dump(models, MODEL_CACHE.open("w"))
 
 
-def fetch_models():
-    if OPEN_ROUTER_API_KEY:
-        for model in fetch_open_router_models():
-            model["id"] = f"openrouter/{model['id']}"
-            yield model
-
-
-def fetch_open_router_models():
+def fetch_openrouter_models():
     import openai
 
-    return openai.Model.list(
-        api_base="https://openrouter.ai/api/v1",
-        api_key=os.environ.get("OPEN_ROUTER_API_KEY"),
-    )["data"]
+    for model in openai.Model.list(
+        api_base=api_base("openrouter/"),
+        api_key=api_key("openrouter/"),
+    )["data"]:
+        model["id"] = f"openrouter/{model['id']}"
+        yield model
 
 
 def api_base(model):
@@ -82,8 +83,8 @@ def api_base(model):
 
 def api_key(model):
     if model.startswith("openrouter/"):
-        return os.environ.get("OPEN_ROUTER_API_KEY")
-    return os.environ.get("OPEN_AI_API_KEY")
+        return os.environ.get("OPENROUTER_API_KEY")
+    return os.environ.get("OPENAI_API_KEY")
 
 
 def api_model_name(model):
