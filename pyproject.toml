@@ -28,6 +28,7 @@ pytest = "^7.2.2"
 pytest-mock = "^3.10.0"
 pytest-cov = "^4.0.0"
 ruff = "^0.0.261"
+pytest-asyncio = "^0.21.1"
 
 [tool.poetry.scripts]
 chatcli = "chatcli_gpt.cli:main"

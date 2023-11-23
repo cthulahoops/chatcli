@@ -3,6 +3,7 @@ import signal
 from copy import copy
 from contextlib import contextmanager
 from dataclasses import dataclass
+import asyncio
 
 from . import models
 
@@ -33,9 +34,9 @@ class Conversation:
                 return message
         raise ValueError("No matching message found")
 
-    def complete(self, *, stream=True, callback=None):
+    async def complete(self, *, stream=True, callback=None):
         if stream:
-            completion = stream_request(self.messages, self.model, callback)
+            completion = await stream_request(self.messages, self.model, callback)
         else:
             completion = synchroneous_request(self.messages, self.model, callback)
 
@@ -101,40 +102,46 @@ def handle_sigint():
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 
-def stream_request(request_messages, model, callback):
+async def stream_request(request_messages, model, callback):
     import openai
 
-    with handle_sigint() as state:
-        stream = openai.ChatCompletion.create(
-            api_base=models.api_base(model),
-            api_key=models.api_key(model),
-            model=models.api_model_name(model),
-            messages=request_messages,
-            stream=True,
-        )
-        return accumulate_streaming_response(
-            take_while_uninterrupted(stream, state),
-            callback,
-        )
+    stream = await openai.ChatCompletion.acreate(
+        api_base=models.api_base(model),
+        api_key=models.api_key(model),
+        model=models.api_model_name(model),
+        messages=request_messages,
+        stream=True,
+    )
+
+    return await accumulate_streaming_response(stream, callback)
 
 
-def take_while_uninterrupted(iterator, state):
-    for item in iterator:
-        yield item
-        if not state.running:
-            break
+async def accumulate_streaming_response(iterator, callback=None):
+    if not callback:
 
+        def callback(_):
+            pass
 
-def accumulate_streaming_response(iterator, callback):
     completion = {}
-    for delta in iterator:
-        completion = add_deltas(completion, delta)
+    try:
+        async for delta in iterator:
+            completion = add_deltas(completion, delta)
 
-        choice_zero = delta["choices"][0]
-        if choice_zero and choice_zero["index"] == 0 and choice_zero.get("delta").get("content") and callback:
-            callback(choice_zero.get("delta").get("content"))
+            content = get_choice_content(delta)
+            if content:
+                callback(content)
+    except asyncio.CancelledError:
+        pass
 
     return completion
+
+
+def get_choice_content(completion, index=0):
+    return choices_by_index(completion["choices"]).get(index, {}).get("content")
+
+
+def choices_by_index(choices):
+    return {x["index"]: x["delta"] for x in choices}
 
 
 def add_deltas(completion, chunk):
@@ -144,12 +151,8 @@ def add_deltas(completion, chunk):
 
     choices = completion["choices"]
 
-    for choice in chunk["choices"]:
-        if "delta" not in choice:
-            continue
-
-        idx = choice["index"]
-        choices[idx]["message"] = append_delta(choices[idx]["message"], choice["delta"])
+    for idx, delta in choices_by_index(chunk["choices"]).items():
+        choices[idx]["message"] = append_delta(choices[idx]["message"], delta)
 
     return completion
 

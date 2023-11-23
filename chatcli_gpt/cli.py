@@ -45,6 +45,17 @@ MODEL_CHOICE = PartialChoice([model["id"] for model in MODELS])
 
 USAGE_COSTS = {model["id"]: model["pricing"] for model in MODELS}
 
+import asyncio
+from functools import wraps
+
+
+def coro(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        return asyncio.run(f(*args, **kwargs))
+
+    return wrapper
+
 
 @click.group(cls=DefaultGroup, default="chat", default_if_no_args=True)
 @click.version_option()
@@ -355,9 +366,11 @@ def answer(conversation, stream):
     add_answer(conversation, stream=stream)
 
 
-def add_answer(conversation, *, stream=True):
+@coro
+async def add_answer(conversation, *, stream=True):
     while True:
-        response = conversation.complete(stream=stream, callback=lambda token: click.echo(token, nl=False))
+        response = await conversation.complete(stream=stream, callback=lambda token: click.echo(token, nl=False))
+        click.echo()
         write_log(conversation, completion=conversation.completion, usage=conversation.usage)
         from . import plugins
 

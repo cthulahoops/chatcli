@@ -1,6 +1,8 @@
+import asyncio
+from io import StringIO
 import os
 import signal
-from unittest.mock import Mock
+import contextlib
 import pytest
 from chatcli_gpt.conversation import Conversation, stream_request, accumulate_streaming_response
 import openai  # noqa: F401
@@ -31,29 +33,33 @@ def test_find_recent_message():
 
 
 def test_stream_interrupt(mocker):
-    def stream(model, messages, stream, **_kwargs):
-        assert model == "gpt-4"
-        assert messages == []
-        assert stream
-        yield {"model": model, "choices": [{"delta": {"role": "assistant"}, "index": 0}]}
-        for word in ["a", "quick", "brown"]:
-            yield {"choices": [{"delta": {"content": " " + word}, "index": 0}]}
-        os.kill(os.getpid(), signal.SIGINT)
-        for word in ["jumped", "over", "the"]:
-            yield {"choices": [{"delta": {"content": " " + word}, "index": 0}]}
+    async def astream(model, *_args, **_kwargs):
+        async def updates():
+            yield {"model": model, "choices": [{"delta": {"role": "assistant"}, "index": 0}]}
+            for word in ["a", "quick", "brown"]:
+                yield {"choices": [{"delta": {"content": word + " "}, "index": 0}]}
+            raise asyncio.CancelledError
+            for word in ["jumped", "over", "the"]:
+                yield {"choices": [{"delta": {"content": word + " "}, "index": 0}]}
 
-    mocker.patch("openai.ChatCompletion.create", stream)
-    callback = Mock()
-    response = stream_request([], "gpt-4", callback)
+        return updates()
 
-    assert response["choices"][0]["message"]["content"] == " a quick brown jumped"
-    assert callback.call_count == 4
+    mocker.patch("openai.ChatCompletion.create", None)
+    mocker.patch("openai.ChatCompletion.acreate", astream)
+    buffer = StringIO()
+
+    result = asyncio.run(stream_request([], "gpt-4", buffer.write))
+
+    assert result["model"] == "gpt-4"
+
+    assert buffer.getvalue() == "a quick brown "
 
 
-def test_accumulate_streaming_response_empty_iterator():
-    iterator = []
+@pytest.mark.asyncio()
+async def test_accumulate_streaming_response_empty_iterator():
+    iterator = async_gen([])
     callback = None
-    result = accumulate_streaming_response(iterator, callback)
+    result = await accumulate_streaming_response(iterator)
     assert result == {}
 
 
@@ -101,7 +107,8 @@ def streaming_data():
     ]
 
 
-def test_accumulate_streaming_response_single_delta():
+@pytest.mark.asyncio()
+async def test_accumulate_streaming_response_single_delta():
     iterator = [
         {
             "choices": [
@@ -116,7 +123,7 @@ def test_accumulate_streaming_response_single_delta():
         },
     ]
     callback = None
-    result = accumulate_streaming_response(iterator, callback)
+    result = await accumulate_streaming_response(async_gen(iterator), callback)
     expected_result = {
         "choices": [
             {
@@ -130,14 +137,20 @@ def test_accumulate_streaming_response_single_delta():
     assert result == expected_result
 
 
-def test_accumulate_multiple_deltas(streaming_data):
+async def async_gen(iteratable):
+    for item in iteratable:
+        yield item
+
+
+@pytest.mark.asyncio()
+async def test_accumulate_multiple_deltas(streaming_data):
     for message in streaming_data:
         message["choices"] = [item for item in message["choices"] if item["index"] == 0]
 
-    streaming_data = [item for item in streaming_data if item["choices"]]
+    streaming_data = async_gen([item for item in streaming_data if item["choices"]])
 
     callback = None
-    result = accumulate_streaming_response(streaming_data, callback)
+    result = await accumulate_streaming_response(streaming_data, callback)
     expected_result = {
         "model": "fake_data",
         "choices": [
@@ -152,9 +165,10 @@ def test_accumulate_multiple_deltas(streaming_data):
     assert result == expected_result
 
 
-def test_accumulate_multiple_choices(streaming_data):
+@pytest.mark.asyncio()
+async def test_accumulate_multiple_choices(streaming_data):
     callback = None
-    result = accumulate_streaming_response(streaming_data, callback)
+    result = await accumulate_streaming_response(async_gen(streaming_data), callback)
     expected_result = {
         "model": "fake_data",
         "choices": [
@@ -181,11 +195,12 @@ def test_accumulate_multiple_choices(streaming_data):
     assert result == expected_result
 
 
-def test_callback_gets_message(streaming_data):
+@pytest.mark.asyncio()
+async def test_callback_gets_message(streaming_data):
     from io import StringIO
 
     buffer = StringIO()
 
-    accumulate_streaming_response(streaming_data, buffer.write)
+    await accumulate_streaming_response(async_gen(streaming_data), buffer.write)
 
     assert buffer.getvalue() == "Hello, how are you?"

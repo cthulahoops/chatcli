@@ -31,7 +31,15 @@ def _fake_assistant(mocker):
             "usage": {"total_tokens": 41},
         }
 
+    async def async_advanced_ai(*args, **kwargs):
+        async def agen(gen):
+            for x in gen:
+                yield x
+
+        return agen(advanced_ai(*args, **kwargs))
+
     mocker.patch("openai.ChatCompletion.create", advanced_ai)
+    mocker.patch("openai.ChatCompletion.acreate", async_advanced_ai)
     mocker.patch(
         "chatcli_gpt.conversation.completion_usage",
         return_value={"prompt_tokens": 11, "completion_tokens": 10, "total_tokens": 41},
