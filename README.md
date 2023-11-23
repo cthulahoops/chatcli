@@ -77,6 +77,35 @@ just do:
 chatcli --retry --model gpt-4
 ```
 
+You can list available models with
+
+```
+$ chatcli models
+gpt-4-1106-preview
+gpt-3.5-turbo-1106
+gpt-4
+gpt-3.5-turbo
+```
+
+By default the core openai models are available. You can also enable models from
+[OpenRouter](https://openrouter.ai/) with:
+
+```
+export OPENROUTER_API_KEY=<your api key>
+chatcli models fetch openrouter
+```
+
+You select a model using any substring of the model id. For example, you can select the
+`openrouter/anthropic/claude-2` model using:
+
+```
+chatcli --model claude-2
+```
+
+The first matching model is selected. This does mean it is currently impossible to start a
+conversation with the older gpt models as `gpt-4` is a substriing of `gpt-4-1106-preview`.
+The newer model is cheaper, and more powerful, so this behaviour seems reasonable.
+
 ### Conversations
 
 A conversation consists of a list messages, and some flags. Conversations typically start with
