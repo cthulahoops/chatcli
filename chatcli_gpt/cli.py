@@ -2,6 +2,7 @@ import os
 import sys
 import itertools
 import functools
+import asyncio
 from datetime import datetime, timezone
 import dateutil.parser
 from pathlib import Path
@@ -45,12 +46,9 @@ MODEL_CHOICE = PartialChoice([model["id"] for model in MODELS])
 
 USAGE_COSTS = {model["id"]: model["pricing"] for model in MODELS}
 
-import asyncio
-from functools import wraps
-
 
 def coro(f):
-    @wraps(f)
+    @functools.wraps(f)
     def wrapper(*args, **kwargs):
         return asyncio.run(f(*args, **kwargs))
 
