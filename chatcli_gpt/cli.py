@@ -293,7 +293,7 @@ def show(long, conversation, format_json):
 @click.option("--usage", "-u", is_flag=True, help="Show token usage")
 @click.option("--cost", is_flag=True, help="Show token cost")
 @click.option("--plugins", is_flag=True, help="Show enabled plugins")
-@click.option("--model", is_flag=True, help="Show model")
+@click.option("-m", "--model", is_flag=True, help="Show model")
 @click.option("--json", "format_json", is_flag=True, help="Output conversation in JSON format.")
 def log(conversations, limit, format_json, **kwargs):
     for offset, conversation in reversed(list(itertools.islice(conversations, limit))):
