@@ -217,6 +217,13 @@ def edit(conversation, **kwargs):
     write_log(conversation)
 
 
+@cli.command(help="Remove the last message in a conversation.")
+@select_conversation
+def drop(conversation):
+    conversation.messages.pop()
+    write_log(conversation)
+
+
 @cli.command(help="Create a new conversation by merging existing conversations.")
 @click.option("-p", "--personality", help="Set personality for new conversation.")
 @filter_conversations

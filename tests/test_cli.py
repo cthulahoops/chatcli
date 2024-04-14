@@ -323,6 +323,13 @@ def test_edit_model(chatcli):
     assert data["model"] == "gpt-3.5-turbo-1106"
 
 
+def test_drop(chatcli):
+    chatcli("add --role user", input="What is your name?")
+    chatcli("add --role assistant --continue", input="My name is Bob.")
+    chatcli("drop 1")
+    assert last_message(chatcli) == "What is your name?"
+
+
 def last_message(chatcli):
     data = last_conversation_data(chatcli)
     return data["messages"][-1]["content"]
