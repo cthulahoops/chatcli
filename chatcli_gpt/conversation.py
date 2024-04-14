@@ -48,6 +48,10 @@ class Conversation:
 
         return response_message
 
+    def add_tag(self, tag):
+        self.tags = [t for t in self.tags if t != tag]
+        self.tags.append(tag)
+
 
 def completion_usage(request_messages, model, completion):
     if "usage" in completion:

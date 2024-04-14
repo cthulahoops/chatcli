@@ -194,6 +194,29 @@ def merge_list(input_list, additions):
             input_list.append(item)
 
 
+@cli.command(help="Edit the last message in a conversation.")
+@click.option("-m", "--model", type=MODEL_CHOICE)
+@click.option("--prompt/--no-prompt", default=True)
+@click.option("-p", "--personality", "select_personality", default="default", help="Personality to use.")
+@select_conversation
+def edit(conversation, **kwargs):
+    if kwargs["prompt"]:
+        content = prompt(
+            multiline=True,
+            default=conversation.messages[-1]["content"],
+        )
+
+        conversation.messages[-1]["content"] = content
+
+    if kwargs.get("model"):
+        conversation.model = kwargs["model"]
+
+    if kwargs.get("personality"):
+        conversation.add_tag(f"^{kwargs['personality']}")
+
+    write_log(conversation)
+
+
 @cli.command(help="Create a new conversation by merging existing conversations.")
 @click.option("-p", "--personality", help="Set personality for new conversation.")
 @filter_conversations
@@ -347,10 +370,15 @@ def run_conversation(conversation, *, stream=True, multiline=True, quick=False):
             break
 
 
-def prompt(*, multiline=True):
+def prompt(*, multiline=True, **kwargs):
     if os.isatty(0):
         try:
-            return prompt_toolkit.prompt(">> ", multiline=multiline, prompt_continuation=".. ").strip()
+            return prompt_toolkit.prompt(
+                ">> ",
+                multiline=multiline,
+                prompt_continuation=".. ",
+                **kwargs,
+            ).strip()
         except EOFError:
             return None
     else:

@@ -7,7 +7,6 @@ from unittest.mock import patch
 from click.testing import CliRunner
 import pytest
 from chatcli_gpt.cli import cli
-import openai
 
 
 @pytest.fixture(autouse=True)
@@ -305,8 +304,30 @@ def test_merge(chatcli):
     chatcli("add --role user --plugin a", input="What is your name?")
     chatcli("add --role assistant --plugin b --model gpt-4", input="My name is Bob.")
     chatcli("merge -p test 1 2")
-    result = chatcli("show --json")
-    data = json.loads(result.stdout)
+    data = last_conversation_data(chatcli)
     assert data["tags"] == ["^test"]
     assert data["plugins"] == ["a", "b"]
     assert data["model"] == "gpt-4-1106-preview"
+
+
+def test_edit(chatcli):
+    chatcli("add --role user", input="What is your name?")
+    chatcli("edit 1", input="What is your quest?")
+    assert last_message(chatcli) == "What is your quest?"
+
+
+def test_edit_model(chatcli):
+    chatcli("add --role user", input="What is your name?")
+    chatcli("edit 1 --no-prompt --model gpt-3.5")
+    data = last_conversation_data(chatcli)
+    assert data["model"] == "gpt-3.5-turbo-1106"
+
+
+def last_message(chatcli):
+    data = last_conversation_data(chatcli)
+    return data["messages"][-1]["content"]
+
+
+def last_conversation_data(chatcli):
+    result = chatcli("show --json")
+    return json.loads(result.stdout)
