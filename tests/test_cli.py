@@ -7,11 +7,14 @@ from unittest.mock import patch
 from click.testing import CliRunner
 import pytest
 from chatcli_gpt.cli import cli
+import chatcli_gpt.models
 
 
 @pytest.fixture(autouse=True)
 def _fake_assistant(mocker):
-    def ai(message):
+    def ai(message, model):
+        if model == "name_is_alice":
+            return "My name is Alice."
         if message.startswith("evaluate: "):
             message = message.replace("evaluate: ", "")
             return f"EVALUATE:\n```python\n{message}```"
@@ -22,8 +25,14 @@ def _fake_assistant(mocker):
             "model": model,
             "choices": [{"delta": {"role": "assistant"}, "index": 0}],
         }
-        for word in ai(message).split(" "):
-            yield {"choices": [{"delta": {"content": " " + word}, "index": 0}]}
+        first = True
+        for word in ai(message, model).split(" "):
+            yield {
+                "choices": [
+                    {"delta": {"content": word if first else " " + word}, "index": 0}
+                ]
+            }
+            first = False
 
     def advanced_ai(model, messages, *, stream=False, api_key=None, api_base=None):
         if stream:
@@ -33,7 +42,7 @@ def _fake_assistant(mocker):
                 {
                     "message": {
                         "role": "assistant",
-                        "content": ai(messages[-1]["content"]),
+                        "content": ai(messages[-1]["content"], model),
                     },
                 },
             ],
@@ -56,9 +65,20 @@ def _fake_assistant(mocker):
 
 
 @pytest.fixture()
-def chatcli():
+def chatcli(mocker):
+    mocker.patch("chatcli_gpt.models.MODEL_CACHE", Path(".chatcli-models.json"))
     runner = CliRunner()
     with runner.isolated_filesystem():
+        chatcli_gpt.models.MODEL_CACHE.open("w").write(
+            json.dumps(
+                [
+                    {
+                        "id": "name_is_alice",
+                        "pricing": {"prompt": 0.002, "completion": 0.002},
+                    }
+                ]
+            )
+        )
 
         def chatcli(*args, catch_exceptions=False, expected_exit_code=0, **kwargs):
             result = runner.invoke(
@@ -322,6 +342,18 @@ def test_answer_doesnt_change_personality(chatcli):
     chatcli("answer")
     data = last_conversation_data(chatcli)
     assert data["tags"] == []
+
+
+def test_answer_with_model(chatcli):
+    chatcli("add --role user --personality name", input="What is your name?")
+    chatcli("answer --model=name_is_alice")
+    assert last_message(chatcli) == "My name is Alice."
+
+
+def test_models(chatcli):
+    result = chatcli("models")
+
+    assert "name_is_alice" in result.output.split()
 
 
 def test_merge(chatcli):

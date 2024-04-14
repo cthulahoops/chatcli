@@ -56,7 +56,7 @@ class Conversation:
         self.tags = [t for t in self.tags if t != tag]
         self.tags.append(tag)
 
-    def clone(self):
+    def clone(self, *, model=None):
         data = copy(self.__dict__)
         data["tags"] = (
             [data["tags"][-1]]
@@ -64,6 +64,8 @@ class Conversation:
             else []
         )
         data.pop("completion", None)
+        if model:
+            data["model"] = model
         return type(self)(data)
 
 

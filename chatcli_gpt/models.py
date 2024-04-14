@@ -8,16 +8,8 @@ from click_default_group import DefaultGroup
 
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 
-MODEL_CACHE = Path("/home/akelly/.chatcli.models.json")
+MODEL_CACHE = Path.home() / ".chatcli.models.json"
 
-OPENAI_MODELS = [
-    "gpt-4-1106-preview",
-    "gpt-3.5-turbo-1106",
-    "gpt-4",
-    "gpt-3.5-turbo",
-]
-
-# Create the above LIST but in the format [{ "id": "gpt-4-1106-preview" }, ...]
 OPENAI_MODELS = [
     {
         "id": "gpt-4-1106-preview",
@@ -37,9 +29,22 @@ OPENAI_MODELS = [
     },
 ]
 
-MODELS = OPENAI_MODELS
-if MODEL_CACHE.exists():
-    MODELS += json.load(MODEL_CACHE.open())
+
+_MODELS = None
+
+
+def get_models():
+    global _MODELS  # noqa: PLW0603
+
+    if _MODELS is None:
+        _MODELS = []
+        _MODELS.extend(OPENAI_MODELS)
+        if MODEL_CACHE.exists():
+            _MODELS += json.load(MODEL_CACHE.open())
+    return _MODELS
+
+
+MODELS = get_models()
 
 
 @click.group(

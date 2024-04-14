@@ -19,7 +19,7 @@ from .log import (
 from .conversation import Conversation, is_personality
 from . import models
 
-from .models import MODELS
+from .models import get_models
 
 MESSAGE_COLORS = {
     "user": (186, 85, 211),
@@ -30,7 +30,16 @@ MESSAGE_COLORS = {
 DEFAULT_MODEL = "gpt-3.5-turbo-1106"
 
 
-class PartialChoice(click.Choice):
+class PartialChoice(click.types.ParamType):
+    def __init__(self, name, get_choices, **kwargs):
+        self.name = name
+        self._get_choices = get_choices
+        super().__init__(**kwargs)
+
+    @property
+    def choices(self):
+        return self._get_choices()
+
     def convert(self, value, param, ctx):
         for choice in self.choices:
             if value in choice:
@@ -42,9 +51,10 @@ class PartialChoice(click.Choice):
         )
 
 
-MODEL_CHOICE = PartialChoice([model["id"] for model in MODELS])
-
-USAGE_COSTS = {model["id"]: model["pricing"] for model in MODELS}
+MODEL_CHOICE = PartialChoice(
+    name="MODEL",
+    get_choices=lambda: [model["id"] for model in get_models()],
+)
 
 
 def coro(f):
@@ -132,7 +142,12 @@ def filter_conversations(command):
 )
 @click.option("-r", "--retry", is_flag=True, help="Retry previous question")
 @click.option("--stream/--sync", default=True, help="Stream or sync mode.")
-@click.option("-m", "--model", type=MODEL_CHOICE)
+@click.option(
+    "-m",
+    "--model",
+    type=MODEL_CHOICE,
+    help="Model to use. Run `chatcli models list` to see available models.",
+)
 @click.option("--plugin", "additional_plugins", multiple=True, help="Load a plugin.")
 @select_conversation
 def chat(conversation, **kwargs):
@@ -443,9 +458,10 @@ def prompt(*, multiline=True, **kwargs):
 
 @cli.command(help="Add an answer to a question")
 @click.option("--stream/--sync", default=True, help="Stream or sync mode.")
+@click.option("-m", "--model", type=MODEL_CHOICE)
 @select_conversation
-def answer(conversation, stream):
-    conversation = conversation.clone()
+def answer(conversation, stream, **kwargs):
+    conversation = conversation.clone(**kwargs)
     add_answer(conversation, stream=stream)
 
 
@@ -471,13 +487,15 @@ async def add_answer(conversation, *, stream=True):
 
 
 def conversation_cost(conversation):
+    usage_costs = {model["id"]: model["pricing"] for model in get_models()}
+
     if not conversation.usage:
         return 0
     model = conversation.completion["model"]
     model_price = (
-        USAGE_COSTS.get(model)
-        or USAGE_COSTS.get("-".join(model.split("-")[:-1]))
-        or USAGE_COSTS["openrouter/" + model]
+        usage_costs.get(model)
+        or usage_costs.get("-".join(model.split("-")[:-1]))
+        or usage_costs["openrouter/" + model]
     )
 
     usage = conversation.usage
