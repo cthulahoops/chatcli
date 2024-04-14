@@ -75,7 +75,9 @@ def select_conversation(command):
         if kwargs.get("new") and not (tag or search or offset):
             conversation = Conversation({})
         else:
-            conversation = get_logged_conversation(offset=offset, search=search, tag=tag)
+            conversation = get_logged_conversation(
+                offset=offset, search=search, tag=tag
+            )
         return command(
             *args,
             conversation=conversation,
@@ -104,7 +106,9 @@ def filter_conversations(command):
 
 
 @cli.command(help="Ask a question of ChatGPT.")
-@click.option("-q", "--quick", is_flag=True, help="Just handle a one single-line question.")
+@click.option(
+    "-q", "--quick", is_flag=True, help="Just handle a one single-line question."
+)
 @click.option(
     "-c",
     "--continue_conversation",
@@ -112,7 +116,13 @@ def filter_conversations(command):
     is_flag=True,
     help="Continue previous conversation.",
 )
-@click.option("-p", "--personality", "select_personality", default="default", help="Personality to use.")
+@click.option(
+    "-p",
+    "--personality",
+    "select_personality",
+    default="default",
+    help="Personality to use.",
+)
 @click.option(
     "-f",
     "--file",
@@ -130,7 +140,9 @@ def chat(conversation, **kwargs):
         with Path(filename).open(encoding="utf-8") as fh:
             file_contents = fh.read()
 
-        conversation.append("user", f"The file {filename!r} contains:\n```\n{file_contents}```")
+        conversation.append(
+            "user", f"The file {filename!r} contains:\n```\n{file_contents}```"
+        )
 
     tags = conversation.tags
     tags_to_apply = [tags[-1]] if tags and not is_personality(tags[-1]) else []
@@ -148,11 +160,18 @@ def chat(conversation, **kwargs):
         if kwargs["quick"]:
             return
 
-    run_conversation(conversation, multiline=multiline, quick=quick, stream=kwargs["stream"])
+    run_conversation(
+        conversation, multiline=multiline, quick=quick, stream=kwargs["stream"]
+    )
 
 
 @cli.command(help="Create initial conversation log.")
-@click.option("-r", "--reinit", is_flag=True, help="re-initialize the personalities to default values")
+@click.option(
+    "-r",
+    "--reinit",
+    is_flag=True,
+    help="re-initialize the personalities to default values",
+)
 def init(reinit):
     try:
         create_initial_log(reinit)
@@ -164,11 +183,18 @@ def init(reinit):
 @cli.command(help="Add a message to a new or existing conversation.")
 @click.option("--multiline/--singleline", default=True)
 @click.option("-p", "--personality", help="")
-@click.option("--role", type=click.Choice(["system", "user", "assistant"]), default="system")
+@click.option(
+    "--role", type=click.Choice(["system", "user", "assistant"]), default="system"
+)
 @click.option("--plugin", multiple="True", help="Activate plugins.")
 @click.option("-m", "--model", type=MODEL_CHOICE)
 @click.option("--plugin", "additional_plugins", multiple=True, help="Load a plugin.")
-@click.option("--new/--continue", "-n/-c", default=True, help="Create a new conversation or continue.")
+@click.option(
+    "--new/--continue",
+    "-n/-c",
+    default=True,
+    help="Create a new conversation or continue.",
+)
 @select_conversation
 def add(conversation, personality, role, multiline, **kwargs):
     tags = conversation.tags
@@ -197,7 +223,13 @@ def merge_list(input_list, additions):
 @cli.command(help="Edit the last message in a conversation.")
 @click.option("-m", "--model", type=MODEL_CHOICE)
 @click.option("--prompt/--no-prompt", default=True)
-@click.option("-p", "--personality", "select_personality", default="default", help="Personality to use.")
+@click.option(
+    "-p",
+    "--personality",
+    "select_personality",
+    default="default",
+    help="Personality to use.",
+)
 @select_conversation
 def edit(conversation, **kwargs):
     if kwargs["prompt"]:
@@ -239,7 +271,10 @@ def merge(conversations, personality):
 
     for _, item in reversed(list(conversations)):
         merge_list(merged_conversation["messages"], item.messages)
-        merge_list(merged_conversation["tags"], (tag for tag in item.tags if not is_personality(tag)))
+        merge_list(
+            merged_conversation["tags"],
+            (tag for tag in item.tags if not is_personality(tag)),
+        )
         merge_list(merged_conversation["plugins"], item.plugins)
         merged_conversation["model"] = item.model or merged_conversation["model"]
 
@@ -290,14 +325,21 @@ def show_tag(conversation):
 
 
 @cli.command(help="Show a conversation.")
-@click.option("-p", "--personality", "select_personality", help="Select conversation by personality.")
+@click.option(
+    "-p",
+    "--personality",
+    "select_personality",
+    help="Select conversation by personality.",
+)
 @select_conversation
 @click.option(
     "-l/-s",
     "--long/--short",
     help="Show full conversation or just the most recent message.",
 )
-@click.option("--format-json", "--json", is_flag=True, help="Output conversation in JSON format.")
+@click.option(
+    "--format-json", "--json", is_flag=True, help="Output conversation in JSON format."
+)
 def show(long, conversation, format_json):
     if format_json:
         click.echo(conversation.to_json())
@@ -309,25 +351,36 @@ def show(long, conversation, format_json):
         prefix = ""
         if message["role"] == "user":
             prefix = ">> "
-        click.echo(click.style(prefix + message["content"], fg=MESSAGE_COLORS[message["role"]]))
+        click.echo(
+            click.style(prefix + message["content"], fg=MESSAGE_COLORS[message["role"]])
+        )
 
 
 @cli.command(help="Display conversation log.")
-@click.option("-p", "--personality", "select_personality", help="Select conversation by personality.")
+@click.option(
+    "-p",
+    "--personality",
+    "select_personality",
+    help="Select conversation by personality.",
+)
 @filter_conversations
 @click.option("--limit", "-l", type=int, help="Limit number of results")
 @click.option("--usage", "-u", is_flag=True, help="Show token usage")
 @click.option("--cost", is_flag=True, help="Show token cost")
 @click.option("--plugins", is_flag=True, help="Show enabled plugins")
 @click.option("-m", "--model", is_flag=True, help="Show model")
-@click.option("--json", "format_json", is_flag=True, help="Output conversation in JSON format.")
+@click.option(
+    "--json", "format_json", is_flag=True, help="Output conversation in JSON format."
+)
 def log(conversations, limit, format_json, **kwargs):
     for offset, conversation in reversed(list(itertools.islice(conversations, limit))):
         if format_json:
             click.echo(conversation.to_json())
             continue
         try:
-            question = conversation.find(lambda message: message["role"] != "assistant")["content"]
+            question = conversation.find(
+                lambda message: message["role"] != "assistant"
+            )["content"]
         except ValueError:
             question = conversation.messages[-1]["content"]
         trimmed_message = question.strip().split("\n", 1)[0][:80]
@@ -336,7 +389,9 @@ def log(conversations, limit, format_json, **kwargs):
         fields.append(click.style(f"{offset: 4d}:", fg="blue"))
 
         if kwargs["usage"]:
-            total_tokens = conversation.usage["total_tokens"] if conversation.usage else 0
+            total_tokens = (
+                conversation.usage["total_tokens"] if conversation.usage else 0
+            )
             fields.append(f"{total_tokens: 5d}")
 
         if kwargs["cost"]:
@@ -398,12 +453,18 @@ def answer(conversation, stream):
 @coro
 async def add_answer(conversation, *, stream=True):
     while True:
-        response = await conversation.complete(stream=stream, callback=lambda token: click.echo(token, nl=False))
+        response = await conversation.complete(
+            stream=stream, callback=lambda token: click.echo(token, nl=False)
+        )
         click.echo()
-        write_log(conversation, completion=conversation.completion, usage=conversation.usage)
+        write_log(
+            conversation, completion=conversation.completion, usage=conversation.usage
+        )
         from . import plugins
 
-        plugin_response = plugins.evaluate_plugins(response["content"], conversation.plugins)
+        plugin_response = plugins.evaluate_plugins(
+            response["content"], conversation.plugins
+        )
         if not plugin_response:
             break
         click.echo(click.style(plugin_response, fg=(200, 180, 90)))
@@ -415,7 +476,9 @@ def conversation_cost(conversation):
         return 0
     model = conversation.completion["model"]
     model_price = (
-        USAGE_COSTS.get(model) or USAGE_COSTS.get("-".join(model.split("-")[:-1])) or USAGE_COSTS["openrouter/" + model]
+        USAGE_COSTS.get(model)
+        or USAGE_COSTS.get("-".join(model.split("-")[:-1]))
+        or USAGE_COSTS["openrouter/" + model]
     )
 
     usage = conversation.usage
@@ -431,11 +494,18 @@ def show_usage(today):
     conversations = conversation_log()
 
     def is_today(conversation):
-        return dateutil.parser.parse(conversation.timestamp).date() == datetime.now(tz=timezone.utc).date()
+        return (
+            dateutil.parser.parse(conversation.timestamp).date()
+            == datetime.now(tz=timezone.utc).date()
+        )
 
     if today:
         conversations = [c for c in conversations if is_today(c)]
-    tokens = sum(conversation.usage["total_tokens"] for conversation in conversations if conversation.usage)
+    tokens = sum(
+        conversation.usage["total_tokens"]
+        for conversation in conversations
+        if conversation.usage
+    )
 
     total_cost = sum(conversation_cost(conversation) for conversation in conversations)
     click.echo(f"Tokens: {tokens}")

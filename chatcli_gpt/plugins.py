@@ -69,7 +69,9 @@ def extract_blocks(response_text, plugin):
 
 
 def exec_bash(code):
-    result = subprocess.run(["/bin/bash", "-c", code], capture_output=True, text=True, check=False)
+    result = subprocess.run(
+        ["/bin/bash", "-c", code], capture_output=True, text=True, check=False
+    )
 
     return {
         "result": result.stdout.strip(),
@@ -106,13 +108,19 @@ def exec_python(code):
 
 
 def exec_duckduckgo(search_term):
-    return {"result": json.dumps(duckduckgo_search.ddg(search_term, max_results=5), indent=2)}
+    return {
+        "result": json.dumps(
+            duckduckgo_search.ddg(search_term, max_results=5), indent=2
+        )
+    }
 
 
 def exec_wolfram(query):
     api_key = os.environ.get("WOLFRAM_ALPHA_API_KEY")
     if not api_key:
-        return {"error": "WOLFRAM_ALPHA_API_KEY is not configured. (Set as an environment variable.)"}
+        return {
+            "error": "WOLFRAM_ALPHA_API_KEY is not configured. (Set as an environment variable.)"
+        }
     client = wolframalpha.Client(api_key)
     result = client.query(query)
     return {"result": next(result.results).text}
@@ -137,5 +145,7 @@ def format_block(output):
 
 if __name__ == "__main__":
     print("(Finish input with <Alt-Enter> or <Esc><Enter>)")
-    input_text = prompt_toolkit.prompt(multiline=True, prompt=">>> ", continuation_prompt="... ")
+    input_text = prompt_toolkit.prompt(
+        multiline=True, prompt=">>> ", continuation_prompt="... "
+    )
     print(evaluate_plugins(input_text, sys.argv[1:]))

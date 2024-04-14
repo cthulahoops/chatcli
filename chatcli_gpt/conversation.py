@@ -22,7 +22,11 @@ class Conversation:
         self.messages.append({"role": role, "content": content})
 
     def __contains__(self, search_term):
-        question = self.messages[-2]["content"] if len(self.messages) > 1 else self.messages[-1]["content"]
+        question = (
+            self.messages[-2]["content"]
+            if len(self.messages) > 1
+            else self.messages[-1]["content"]
+        )
         return search_term in question
 
     def to_json(self):
@@ -64,9 +68,14 @@ def completion_usage(request_messages, model, completion):
     except KeyError:
         encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
 
-    request_text = " ".join("role: " + x["role"] + " content: " + x["content"] + "\n" for x in request_messages)
+    request_text = " ".join(
+        "role: " + x["role"] + " content: " + x["content"] + "\n"
+        for x in request_messages
+    )
     request_tokens = len(encoding.encode(request_text))
-    completion_tokens = len(encoding.encode(completion["choices"][0]["message"]["content"]))
+    completion_tokens = len(
+        encoding.encode(completion["choices"][0]["message"]["content"])
+    )
     return {
         "prompt_tokens": request_tokens,
         "completion_tokens": completion_tokens,

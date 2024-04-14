@@ -4,7 +4,11 @@ import os
 import signal
 import contextlib
 import pytest
-from chatcli_gpt.conversation import Conversation, stream_request, accumulate_streaming_response
+from chatcli_gpt.conversation import (
+    Conversation,
+    stream_request,
+    accumulate_streaming_response,
+)
 import openai  # noqa: F401
 
 
@@ -35,7 +39,10 @@ def test_find_recent_message():
 def test_stream_interrupt(mocker):
     async def astream(model, *_args, **_kwargs):
         async def updates():
-            yield {"model": model, "choices": [{"delta": {"role": "assistant"}, "index": 0}]}
+            yield {
+                "model": model,
+                "choices": [{"delta": {"role": "assistant"}, "index": 0}],
+            }
             for word in ["a", "quick", "brown"]:
                 yield {"choices": [{"delta": {"content": word + " "}, "index": 0}]}
             raise asyncio.CancelledError

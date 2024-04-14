@@ -18,7 +18,10 @@ def _fake_assistant(mocker):
         return message.upper()
 
     def streaming_ai(model, message):
-        yield {"model": model, "choices": [{"delta": {"role": "assistant"}, "index": 0}]}
+        yield {
+            "model": model,
+            "choices": [{"delta": {"role": "assistant"}, "index": 0}],
+        }
         for word in ai(message).split(" "):
             yield {"choices": [{"delta": {"content": " " + word}, "index": 0}]}
 
@@ -26,7 +29,14 @@ def _fake_assistant(mocker):
         if stream:
             return (x for x in streaming_ai(model, messages[-1]["content"]))
         return {
-            "choices": [{"message": {"role": "assistant", "content": ai(messages[-1]["content"])}}],
+            "choices": [
+                {
+                    "message": {
+                        "role": "assistant",
+                        "content": ai(messages[-1]["content"]),
+                    },
+                },
+            ],
             "usage": {"total_tokens": 41},
         }
 
@@ -51,7 +61,9 @@ def chatcli():
     with runner.isolated_filesystem():
 
         def chatcli(*args, catch_exceptions=False, expected_exit_code=0, **kwargs):
-            result = runner.invoke(cli, *args, catch_exceptions=catch_exceptions, **kwargs)
+            result = runner.invoke(
+                cli, *args, catch_exceptions=catch_exceptions, **kwargs
+            )
             assert result.exit_code == expected_exit_code
             return result
 
@@ -86,7 +98,10 @@ def test_chat_with_file(chatcli):
         fh.write("Hello, world!")
     chatcli("-f test.txt", input="What's in this file?")
     result = chatcli("show --json")
-    assert json.loads(result.output)["messages"][1]["content"] == "The file 'test.txt' contains:\n```\nHello, world!```"
+    assert (
+        json.loads(result.output)["messages"][1]["content"]
+        == "The file 'test.txt' contains:\n```\nHello, world!```"
+    )
 
 
 def test_show_short(chatcli):
@@ -243,7 +258,9 @@ def test_add_personality(chatcli):
 
 
 def test_add_personality_with_pyeval_and_evaluate(chatcli):
-    chatcli("add -p test_personality --plugin pyeval", input="You are a test personality.")
+    chatcli(
+        "add -p test_personality --plugin pyeval", input="You are a test personality."
+    )
     result = chatcli("log --plugins")
     assert "^test_personality" in result.output
 

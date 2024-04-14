@@ -110,7 +110,12 @@ def convert_log_pre_0_4(filename):
 
             timestamp = (
                 data.get("timestamp")
-                or (completion and datetime.fromtimestamp(completion.get("created"), tz=timezone.utc).isoformat())
+                or (
+                    completion
+                    and datetime.fromtimestamp(
+                        completion.get("created"), tz=timezone.utc
+                    ).isoformat()
+                )
                 or datetime.now(tz=timezone.utc).isoformat()
             )
 

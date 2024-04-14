@@ -42,7 +42,12 @@ if MODEL_CACHE.exists():
     MODELS += json.load(MODEL_CACHE.open())
 
 
-@click.group(cls=DefaultGroup, default="list", default_if_no_args=True, help="View and manage models")
+@click.group(
+    cls=DefaultGroup,
+    default="list",
+    default_if_no_args=True,
+    help="View and manage models",
+)
 def models():
     pass
 

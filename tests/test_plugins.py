@@ -9,15 +9,21 @@ def test_simple_code():
 
 
 def test_sqrt_example():
-    assert evaluate_plugins(block("import math; math.sqrt(4)"), ["pyeval"]) == result("2.0")
+    assert evaluate_plugins(block("import math; math.sqrt(4)"), ["pyeval"]) == result(
+        "2.0"
+    )
 
 
 def test_use_defined_function():
-    assert evaluate_plugins(block("def double(x):\n  return 2 * x\ndouble(4)\n"), ["pyeval"]) == result("8")
+    assert evaluate_plugins(
+        block("def double(x):\n  return 2 * x\ndouble(4)\n"), ["pyeval"]
+    ) == result("8")
 
 
 def test_python_exception():
-    assert "ZeroDivisionError: division by zero" in evaluate_plugins(block("print(3 / 0)"), ["pyeval"])
+    assert "ZeroDivisionError: division by zero" in evaluate_plugins(
+        block("print(3 / 0)"), ["pyeval"]
+    )
 
 
 def test_python_statement():
@@ -26,14 +32,21 @@ def test_python_statement():
 
 def test_recursive_function():
     assert evaluate_plugins(
-        block("def fact(n):\n if n <= 1:\n  return n\n return fact(n - 1) * n\nfact(6)\n"),
+        block(
+            "def fact(n):\n if n <= 1:\n  return n\n return fact(n - 1) * n\nfact(6)\n"
+        ),
         ["pyeval"],
     ) == result("720")
 
 
-@mock.patch("chatcli_gpt.plugins.duckduckgo_search.ddg", return_value='[{"content": "Some guy"}]')
+@mock.patch(
+    "chatcli_gpt.plugins.duckduckgo_search.ddg",
+    return_value='[{"content": "Some guy"}]',
+)
 def test_simple_search(mock_ddg):
-    assert "Some guy" in evaluate_plugins('SEARCH("Who is the president of the USA?")', ["search"])
+    assert "Some guy" in evaluate_plugins(
+        'SEARCH("Who is the president of the USA?")', ["search"]
+    )
     assert mock_ddg.call_args.args[0] == "Who is the president of the USA?"
 
 
@@ -41,23 +54,27 @@ def test_simple_search(mock_ddg):
 @mock.patch("os.environ", {"WOLFRAM_ALPHA_API_KEY": "TRUE"})
 def test_wolfram(mock_wolfram):
     next(mock_wolfram.Client().query().results).text = "Paris"
-    assert "Paris" in evaluate_plugins('WOLFRAM("What is the capital of France?")', ["wolfram"])
+    assert "Paris" in evaluate_plugins(
+        'WOLFRAM("What is the capital of France?")', ["wolfram"]
+    )
 
 
 def test_bash():
-    assert evaluate_plugins(block("let a=4+5; echo $a", "bash"), ["bash"]) == result("9")
+    assert evaluate_plugins(block("let a=4+5; echo $a", "bash"), ["bash"]) == result(
+        "9"
+    )
 
 
 def test_multiple_blocks():
-    assert evaluate_plugins(block("print(3 + 4)") + block("import math; math.sqrt(4)"), ["pyeval"]) == result(
-        7,
-    ) + "\n" + result(2.0)
+    assert evaluate_plugins(
+        block("print(3 + 4)") + block("import math; math.sqrt(4)"), ["pyeval"]
+    ) == result(7,) + "\n" + result(2.0)
 
 
 def test_evaluate_multiple_plugins():
-    assert evaluate_plugins(block("print(3 * 4)") + block("echo hi", "bash"), ["pyeval", "bash"]) == result(
-        12,
-    ) + "\n" + result("hi")
+    assert evaluate_plugins(
+        block("print(3 * 4)") + block("echo hi", "bash"), ["pyeval", "bash"]
+    ) == result(12,) + "\n" + result("hi")
 
 
 def test_save_file():
