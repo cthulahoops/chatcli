@@ -243,8 +243,7 @@ def merge(conversations, personality):
 def list_tags():
     tags = set()
     for conversation in conversation_log():
-        for tag in conversation.tags:
-            tags.add(tag)
+        tags |= set(conversation.tags)
     for tag in sorted(tags):
         click.echo(tag)
 
@@ -264,10 +263,7 @@ def list_personalities():
 @click.argument("new_tag")
 @select_conversation
 def add_tag(new_tag, conversation):
-    new_tags = [tag for tag in conversation.tags if tag != new_tag]
-    new_tags.append(new_tag)
-    conversation.tags = new_tags
-
+    conversation.add_tag(new_tag)
     write_log(conversation)
 
 
