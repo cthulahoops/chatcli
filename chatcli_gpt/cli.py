@@ -16,7 +16,7 @@ from .log import (
     conversation_log,
     create_initial_log,
 )
-from .conversation import Conversation
+from .conversation import Conversation, is_personality
 from . import models
 
 from .models import MODELS
@@ -136,6 +136,8 @@ def filter_conversations(command):
 @click.option("--plugin", "additional_plugins", multiple=True, help="Load a plugin.")
 @select_conversation
 def chat(conversation, **kwargs):
+    conversation = conversation.clone()
+
     for filename in kwargs["file"]:
         with Path(filename).open(encoding="utf-8") as fh:
             file_contents = fh.read()
@@ -144,11 +146,7 @@ def chat(conversation, **kwargs):
             "user", f"The file {filename!r} contains:\n```\n{file_contents}```"
         )
 
-    tags = conversation.tags
-    tags_to_apply = [tags[-1]] if tags and not is_personality(tags[-1]) else []
-
     conversation.plugins.extend(kwargs["additional_plugins"])
-    conversation.tags = tags_to_apply
     conversation.model = kwargs["model"] or conversation.model or DEFAULT_MODEL
 
     quick = kwargs["quick"] or not os.isatty(0)
@@ -447,6 +445,7 @@ def prompt(*, multiline=True, **kwargs):
 @click.option("--stream/--sync", default=True, help="Stream or sync mode.")
 @select_conversation
 def answer(conversation, stream):
+    conversation = conversation.clone()
     add_answer(conversation, stream=stream)
 
 
@@ -519,10 +518,6 @@ def get_logged_conversation(offset, search=None, tag=None):
     except StopIteration:
         click.echo("Matching conversation not found", file=sys.stderr)
         sys.exit(1)
-
-
-def is_personality(tag):
-    return tag.startswith("^")
 
 
 def main():

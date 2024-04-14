@@ -56,6 +56,20 @@ class Conversation:
         self.tags = [t for t in self.tags if t != tag]
         self.tags.append(tag)
 
+    def clone(self):
+        data = copy(self.__dict__)
+        data["tags"] = (
+            [data["tags"][-1]]
+            if data["tags"] and not is_personality(data["tags"][-1])
+            else []
+        )
+        data.pop("completion", None)
+        return type(self)(data)
+
+
+def is_personality(tag):
+    return tag.startswith("^")
+
 
 def completion_usage(request_messages, model, completion):
     if "usage" in completion:

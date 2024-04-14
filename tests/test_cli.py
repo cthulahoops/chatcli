@@ -317,6 +317,13 @@ def test_answer(chatcli):
     assert "WHAT IS YOUR NAME?" in result.output
 
 
+def test_answer_doesnt_change_personality(chatcli):
+    chatcli("add --role user --personality name", input="What is your name?")
+    chatcli("answer")
+    data = last_conversation_data(chatcli)
+    assert data["tags"] == []
+
+
 def test_merge(chatcli):
     chatcli("add --role user --plugin a", input="What is your name?")
     chatcli("add --role assistant --plugin b --model gpt-4", input="My name is Bob.")
