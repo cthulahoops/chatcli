@@ -500,8 +500,8 @@ def conversation_cost(conversation):
 
     usage = conversation.usage
     return (
-        float(model_price["prompt"]) * usage["prompt_tokens"] / 1000
-        + float(model_price["completion"]) * usage["completion_tokens"] / 1000
+        float(model_price["prompt"]) * usage["prompt_tokens"]
+        + float(model_price["completion"]) * usage["completion_tokens"]
     )
 
 

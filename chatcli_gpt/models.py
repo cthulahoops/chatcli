@@ -13,19 +13,19 @@ MODEL_CACHE = Path.home() / ".chatcli.models.json"
 OPENAI_MODELS = [
     {
         "id": "gpt-4-1106-preview",
-        "pricing": {"prompt": 0.01, "completion": 0.03},
+        "pricing": {"prompt": 0.01 / 1000, "completion": 0.03 / 1000},
     },
     {
         "id": "gpt-3.5-turbo-1106",
-        "pricing": {"prompt": 0.001, "completion": 0.002},
+        "pricing": {"prompt": 0.001 / 1000, "completion": 0.002 / 1000},
     },
     {
         "id": "gpt-4",
-        "pricing": {"prompt": 0.03, "completion": 0.06},
+        "pricing": {"prompt": 0.03 / 1000, "completion": 0.06 / 1000},
     },
     {
         "id": "gpt-3.5-turbo",
-        "pricing": {"prompt": 0.002, "completion": 0.002},
+        "pricing": {"prompt": 0.002 / 1000, "completion": 0.002 / 1000},
     },
 ]
 
