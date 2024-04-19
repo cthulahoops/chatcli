@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "chatcli-gpt"
-version = "0.6.0"
+version = "0.7.0"
 description = "A command line interface for interacting with GPT-3. It's orientated around an append only chat log so you get a complete history of your conversations."
 readme = "README.md"
 license = "MIT"
