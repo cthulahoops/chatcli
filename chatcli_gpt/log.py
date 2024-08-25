@@ -14,7 +14,6 @@ LOG_FILE_VERSION = "0.4"
 
 
 def write_log(log_file, conversation, usage=None, completion=None, path=None):
-    print("LOG FILE: ", log_file)
     timestamp = datetime.now(timezone.utc).isoformat()
     with log_file.open("a", buffering=1, encoding="utf-8") as fh:
         fh.write(
@@ -39,7 +38,6 @@ def create_initial_log(reinit):
 
     new_log_file = Path(CHAT_LOG)
 
-    print("new_log_file ", new_log_file)
     if not new_log_file.exists():
         with Path(CHAT_LOG).open("w", encoding="utf-8") as fh:
             fh.write(json.dumps({"version": LOG_FILE_VERSION}) + "\n")
