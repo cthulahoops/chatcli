@@ -13,10 +13,10 @@ CHAT_LOG = os.environ.get("CHATCLI_LOGFILE", ".chatcli.log")
 LOG_FILE_VERSION = "0.4"
 
 
-def write_log(conversation, usage=None, completion=None, path=None):
-    path = path or find_log()
+def write_log(log_file, conversation, usage=None, completion=None, path=None):
+    print("LOG FILE: ", log_file)
     timestamp = datetime.now(timezone.utc).isoformat()
-    with Path(path).open("a", buffering=1, encoding="utf-8") as fh:
+    with log_file.open("a", buffering=1, encoding="utf-8") as fh:
         fh.write(
             json.dumps(
                 {
@@ -37,7 +37,10 @@ def create_initial_log(reinit):
     if not reinit and Path(CHAT_LOG).exists():
         raise FileExistsError(CHAT_LOG)
 
-    if not Path(CHAT_LOG).exists():
+    new_log_file = Path(CHAT_LOG)
+
+    print("new_log_file ", new_log_file)
+    if not new_log_file.exists():
         with Path(CHAT_LOG).open("w", encoding="utf-8") as fh:
             fh.write(json.dumps({"version": LOG_FILE_VERSION}) + "\n")
 
@@ -47,7 +50,7 @@ def create_initial_log(reinit):
 
     with Path(default_log).open(encoding="utf-8") as fh:
         for line in fh:
-            write_log(Conversation(json.loads(line)), path=CHAT_LOG)
+            write_log(new_log_file, Conversation(json.loads(line)), path=CHAT_LOG)
 
 
 def conversation_log(log_path):
@@ -72,7 +75,7 @@ def rewrite_log(path, lines):
             fh.write(line + "\n")
 
 
-def find_log(start_dir=None):
+def find_log(start_dir):
     start_dir = start_dir or Path(".")
 
     if not start_dir.is_dir():

@@ -58,6 +58,24 @@ MODEL_CHOICE = PartialChoice(
 )
 
 
+class LogFileLocation(click.Path):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def convert(self, *args, **kwargs):
+        path = super().convert(*args, **kwargs)
+        return find_log(path)
+
+
+log_file_option = click.option(
+    "--log-file",
+    "--log",
+    type=LogFileLocation(exists=True, path_type=Path),
+    default=lambda: find_log(Path(".")),
+    help="Conversation log file path, or the directory to search for a log file.",
+)
+
+
 def coro(f):
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
@@ -76,15 +94,9 @@ def select_conversation(command):
     @click.argument("offset", type=int, required=False)
     @click.option("-s", "--search", help="Select by search term")
     @click.option("-t", "--tag", help="Select by tag")
-    @click.option(
-        "--log",
-        type=click.Path(exists=True, path_type=Path),
-        help="Conversation log file path, or the directory to search for a log file.",
-    )
+    @log_file_option
     @functools.wraps(command)
-    def wrapper(*args, log=None, offset=None, search=None, tag=None, **kwargs):
-        log_path = find_log(log)
-
+    def wrapper(*args, log_file=None, offset=None, search=None, tag=None, **kwargs):
         if (kwargs.get("continue_conversation") or kwargs.get("retry")) and not offset:
             offset = 1
         if kwargs.get("select_personality") and not (tag or search or offset):
@@ -94,11 +106,12 @@ def select_conversation(command):
             conversation = Conversation({})
         else:
             conversation = get_logged_conversation(
-                log_path, offset=offset, search=search, tag=tag
+                log_file, offset=offset, search=search, tag=tag
             )
         return command(
             *args,
             conversation=conversation,
+            log_file=log_file,
             **kwargs,
         )
 
@@ -109,23 +122,18 @@ def filter_conversations(command):
     @click.argument("offsets", type=int, nargs=-1)
     @click.option("-s", "--search", help="Select by search term")
     @click.option("-t", "--tag", help="Select by tag")
-    @click.option(
-        "--log",
-        type=click.Path(exists=True, path_type=Path),
-        help="Conversation log file path, or the directory to search for a log file.",
-    )
+    @log_file_option
     @functools.wraps(command)
-    def wrapper(*args, log=None, offsets=None, search=None, tag=None, **kwargs):
-        log_path = find_log(log)
-
+    def wrapper(*args, log_file=None, offsets=None, search=None, tag=None, **kwargs):
         if kwargs.get("select_personality") and not (tag or search):
             tag = "^" + kwargs["select_personality"]
         kwargs.pop("select_personality", None)
         return command(
             *args,
             conversations=search_conversations(
-                log_path, offsets=offsets, search=search, tag=tag
+                log_file, offsets=offsets, search=search, tag=tag
             ),
+            log_file=log_file,
             **kwargs,
         )
 
@@ -167,7 +175,7 @@ def filter_conversations(command):
 )
 @click.option("--plugin", "additional_plugins", multiple=True, help="Load a plugin.")
 @select_conversation
-def chat(conversation, **kwargs):
+def chat(log_file, conversation, **kwargs):
     conversation = conversation.clone()
 
     for filename in kwargs["file"]:
@@ -186,12 +194,16 @@ def chat(conversation, **kwargs):
 
     if kwargs["retry"]:
         conversation.messages.pop()
-        add_answer(conversation, stream=kwargs["stream"])
+        add_answer(log_file, conversation, stream=kwargs["stream"])
         if kwargs["quick"]:
             return
 
     run_conversation(
-        conversation, multiline=multiline, quick=quick, stream=kwargs["stream"]
+        log_file,
+        conversation,
+        multiline=multiline,
+        quick=quick,
+        stream=kwargs["stream"],
     )
 
 
@@ -226,7 +238,7 @@ def init(reinit):
     help="Create a new conversation or continue.",
 )
 @select_conversation
-def add(conversation, personality, role, multiline, **kwargs):
+def add(log_file, conversation, personality, role, multiline, **kwargs):
     tags = conversation.tags
     tags_to_apply = [tags[-1]] if tags and not is_personality(tags[-1]) else []
 
@@ -241,7 +253,7 @@ def add(conversation, personality, role, multiline, **kwargs):
         click.echo("(Finish input with <Alt-Enter> or <Esc><Enter>)")
     content = prompt(multiline=True)
     conversation.append(role, content)
-    write_log(conversation)
+    write_log(log_file, conversation)
 
 
 def merge_list(input_list, additions):
@@ -261,7 +273,7 @@ def merge_list(input_list, additions):
     help="Personality to use.",
 )
 @select_conversation
-def edit(conversation, **kwargs):
+def edit(log_file, conversation, **kwargs):
     if kwargs["prompt"]:
         content = prompt(
             multiline=True,
@@ -276,20 +288,20 @@ def edit(conversation, **kwargs):
     if kwargs.get("personality"):
         conversation.add_tag(f"^{kwargs['personality']}")
 
-    write_log(conversation)
+    write_log(log_file, conversation)
 
 
 @cli.command(help="Remove the last message in a conversation.")
 @select_conversation
-def drop(conversation):
+def drop(log_file, conversation):
     conversation.messages.pop()
-    write_log(conversation)
+    write_log(log_file, conversation)
 
 
 @cli.command(help="Create a new conversation by merging existing conversations.")
 @click.option("-p", "--personality", help="Set personality for new conversation.")
 @filter_conversations
-def merge(conversations, personality):
+def merge(log_file, conversations, personality):
     merged_conversation = {
         "messages": [],
         "tags": [],
@@ -308,22 +320,24 @@ def merge(conversations, personality):
         merge_list(merged_conversation["plugins"], item.plugins)
         merged_conversation["model"] = item.model or merged_conversation["model"]
 
-    write_log(Conversation(merged_conversation))
+    write_log(log_file, Conversation(merged_conversation))
 
 
 @cli.command(help="List tags.", name="tags")
-def list_tags():
+@log_file_option
+def list_tags(log_file=None):
     tags = set()
-    for conversation in conversation_log(find_log()):
+    for conversation in conversation_log(log_file):
         tags |= set(conversation.tags)
     for tag in sorted(tags):
         click.echo(tag)
 
 
 @cli.command(help="List personalities.", name="personalities")
-def list_personalities():
+@log_file_option
+def list_personalities(log_file):
     personalities = set()
-    for conversation in conversation_log(find_log()):
+    for conversation in conversation_log(log_file):
         for tag in conversation.tags:
             if is_personality(tag):
                 personalities.add(tag[1:])
@@ -334,22 +348,22 @@ def list_personalities():
 @cli.command(help="Add tags to an conversation.", name="tag")
 @click.argument("new_tag")
 @select_conversation
-def add_tag(new_tag, conversation):
+def add_tag(new_tag, log_file, conversation):
     conversation.add_tag(new_tag)
-    write_log(conversation)
+    write_log(log_file, conversation)
 
 
 @cli.command(help="Remove tags from an conversation.")
 @click.argument("tag_to_remove")
 @select_conversation
-def untag(tag_to_remove, conversation):
+def untag(tag_to_remove, log_file, conversation):
     conversation.tags = [tag for tag in conversation.tags if tag != tag_to_remove]
-    write_log(conversation)
+    write_log(log_file, conversation)
 
 
 @cli.command(help="Current tag")
 @select_conversation
-def show_tag(conversation):
+def show_tag(conversation, **kwargs):
     if conversation.tags:
         click.echo(conversation.tags[-1])
 
@@ -370,7 +384,7 @@ def show_tag(conversation):
 @click.option(
     "--format-json", "--json", is_flag=True, help="Output conversation in JSON format."
 )
-def show(long, conversation, format_json):
+def show(long, conversation, format_json, **kwargs):
     if format_json:
         click.echo(conversation.to_json())
         return
@@ -443,7 +457,9 @@ def log(conversations, limit, format_json, **kwargs):
 cli.add_command(models.models)
 
 
-def run_conversation(conversation, *, stream=True, multiline=True, quick=False):
+def run_conversation(
+    log_file, conversation, *, stream=True, multiline=True, quick=False
+):
     if multiline and os.isatty(0):
         click.echo("(Finish input with <Alt-Enter> or <Esc><Enter>)")
 
@@ -452,7 +468,7 @@ def run_conversation(conversation, *, stream=True, multiline=True, quick=False):
         if not question:
             break
         conversation.append("user", question)
-        add_answer(conversation, stream=stream)
+        add_answer(log_file, conversation, stream=stream)
 
         if quick:
             break
@@ -477,20 +493,23 @@ def prompt(*, multiline=True, **kwargs):
 @click.option("--stream/--sync", default=True, help="Stream or sync mode.")
 @click.option("-m", "--model", type=MODEL_CHOICE)
 @select_conversation
-def answer(conversation, stream, **kwargs):
+def answer(log_file, conversation, stream, **kwargs):
     conversation = conversation.clone(**kwargs)
-    add_answer(conversation, stream=stream)
+    add_answer(log_file, conversation, stream=stream)
 
 
 @coro
-async def add_answer(conversation, *, stream=True):
+async def add_answer(log_file, conversation, *, stream=True):
     while True:
         response = await conversation.complete(
             stream=stream, callback=lambda token: click.echo(token, nl=False)
         )
         click.echo()
         write_log(
-            conversation, completion=conversation.completion, usage=conversation.usage
+            log_file,
+            conversation,
+            completion=conversation.completion,
+            usage=conversation.usage,
         )
         from . import plugins
 
@@ -524,8 +543,9 @@ def conversation_cost(conversation):
 
 @cli.command(help="Display number of tokens and token cost.", name="usage")
 @click.option("--today", is_flag=True, help="Show usage for today only.")
-def show_usage(today):
-    conversations = conversation_log(find_log())
+@log_file_option
+def show_usage(today, log_file):
+    conversations = conversation_log(log_file)
 
     def is_today(conversation):
         return (
