@@ -30,21 +30,12 @@ OPENAI_MODELS = [
 ]
 
 
-_MODELS = None
-
-
 def get_models():
-    global _MODELS  # noqa: PLW0603
-
-    if _MODELS is None:
-        _MODELS = []
-        _MODELS.extend(OPENAI_MODELS)
-        if MODEL_CACHE.exists():
-            _MODELS += json.load(MODEL_CACHE.open())
-    return _MODELS
-
-
-MODELS = get_models()
+    models = []
+    models.extend(OPENAI_MODELS)
+    if MODEL_CACHE.exists():
+        models += json.load(MODEL_CACHE.open())
+    return models
 
 
 @click.group(
@@ -59,7 +50,7 @@ def models():
 
 @models.command(name="list", help="List available models")
 def list_models():
-    for model in MODELS:
+    for model in get_models():
         click.echo(f"{model['id']}")
 
 
