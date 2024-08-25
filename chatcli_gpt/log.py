@@ -50,8 +50,7 @@ def create_initial_log(reinit):
             write_log(Conversation(json.loads(line)), path=CHAT_LOG)
 
 
-def conversation_log():
-    log_path = find_log()
+def conversation_log(log_path):
     with log_path.open(encoding="utf-8") as fh:
         line = json.loads(fh.readline())
         version = line.get("version")
@@ -73,16 +72,16 @@ def rewrite_log(path, lines):
             fh.write(line + "\n")
 
 
-def find_log():
+def find_log(start_dir=Path(".")):
     path = CHAT_LOG
-    for directory in Path(path).resolve().parents:
+    for directory in Path(start_dir / path).resolve().parents:
         if (directory / path).exists():
             return directory / path
     raise FileNotFoundError(CHAT_LOG)
 
 
-def search_conversations(offsets, search, tag):
-    for idx, conversation in enumerate(reversed(conversation_log()), start=1):
+def search_conversations(log_path, offsets, search, tag):
+    for idx, conversation in enumerate(reversed(conversation_log(log_path)), start=1):
         if offsets and idx not in offsets:
             continue
 

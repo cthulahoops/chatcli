@@ -15,6 +15,7 @@ from .log import (
     search_conversations,
     conversation_log,
     create_initial_log,
+    find_log,
 )
 from .conversation import Conversation, is_personality
 from . import models
@@ -101,14 +102,25 @@ def filter_conversations(command):
     @click.argument("offsets", type=int, nargs=-1)
     @click.option("-s", "--search", help="Select by search term")
     @click.option("-t", "--tag", help="Select by tag")
+    @click.option(
+        "--log",
+        type=click.Path(exists=True, path_type=Path),
+        help="Conversation log file path, or the directory to search for a log file.",
+    )
     @functools.wraps(command)
-    def wrapper(*args, offsets=None, search=None, tag=None, **kwargs):
+    def wrapper(*args, log_file=None, offsets=None, search=None, tag=None, **kwargs):
+        log_path = log_file or find_log()
+        if log_path.is_dir():
+            log_path = find_log(log_path)
+
         if kwargs.get("select_personality") and not (tag or search):
             tag = "^" + kwargs["select_personality"]
         kwargs.pop("select_personality", None)
         return command(
             *args,
-            conversations=search_conversations(offsets=offsets, search=search, tag=tag),
+            conversations=search_conversations(
+                log_path, offsets=offsets, search=search, tag=tag
+            ),
             **kwargs,
         )
 
@@ -297,7 +309,7 @@ def merge(conversations, personality):
 @cli.command(help="List tags.", name="tags")
 def list_tags():
     tags = set()
-    for conversation in conversation_log():
+    for conversation in conversation_log(find_log()):
         tags |= set(conversation.tags)
     for tag in sorted(tags):
         click.echo(tag)
@@ -306,7 +318,7 @@ def list_tags():
 @cli.command(help="List personalities.", name="personalities")
 def list_personalities():
     personalities = set()
-    for conversation in conversation_log():
+    for conversation in conversation_log(find_log()):
         for tag in conversation.tags:
             if is_personality(tag):
                 personalities.add(tag[1:])
@@ -508,7 +520,7 @@ def conversation_cost(conversation):
 @cli.command(help="Display number of tokens and token cost.", name="usage")
 @click.option("--today", is_flag=True, help="Show usage for today only.")
 def show_usage(today):
-    conversations = conversation_log()
+    conversations = conversation_log(find_log())
 
     def is_today(conversation):
         return (
@@ -532,7 +544,7 @@ def show_usage(today):
 def get_logged_conversation(offset, search=None, tag=None):
     offsets = [offset] if offset else []
     try:
-        return next(search_conversations(offsets, search, tag))[1]
+        return next(search_conversations(find_log(), offsets, search, tag))[1]
     except StopIteration:
         click.echo("Matching conversation not found", file=sys.stderr)
         sys.exit(1)
