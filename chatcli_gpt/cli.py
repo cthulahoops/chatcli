@@ -32,9 +32,10 @@ DEFAULT_MODEL = "gpt-3.5-turbo-1106"
 
 
 class PartialChoice(click.types.ParamType):
-    def __init__(self, name, get_choices, **kwargs):
+    def __init__(self, name, get_choices, fail_message, **kwargs):
         self.name = name
         self._get_choices = get_choices
+        self.fail_message = fail_message
         super().__init__(**kwargs)
 
     @property
@@ -45,16 +46,13 @@ class PartialChoice(click.types.ParamType):
         for choice in self.choices:
             if value in choice:
                 return choice
-        return self.fail(
-            f"invalid choice: {value}. (choose from {', '.join(self.choices)})",
-            param,
-            ctx,
-        )
+        return self.fail(value + "\n" + self.fail_message, param, ctx)
 
 
 MODEL_CHOICE = PartialChoice(
     name="MODEL",
     get_choices=lambda: [model["id"] for model in get_models()],
+    fail_message="Run `chatcli models list` to see available models.",
 )
 
 
