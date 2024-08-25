@@ -72,11 +72,15 @@ def rewrite_log(path, lines):
             fh.write(line + "\n")
 
 
-def find_log(start_dir=Path(".")):
-    path = CHAT_LOG
-    for directory in Path(start_dir / path).resolve().parents:
-        if (directory / path).exists():
-            return directory / path
+def find_log(start_dir=None):
+    start_dir = start_dir or Path(".")
+
+    if not start_dir.is_dir():
+        return start_dir
+
+    for directory in Path(start_dir / CHAT_LOG).resolve().parents:
+        if (directory / CHAT_LOG).exists():
+            return directory / CHAT_LOG
     raise FileNotFoundError(CHAT_LOG)
 
 

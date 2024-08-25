@@ -76,8 +76,15 @@ def select_conversation(command):
     @click.argument("offset", type=int, required=False)
     @click.option("-s", "--search", help="Select by search term")
     @click.option("-t", "--tag", help="Select by tag")
+    @click.option(
+        "--log",
+        type=click.Path(exists=True, path_type=Path),
+        help="Conversation log file path, or the directory to search for a log file.",
+    )
     @functools.wraps(command)
-    def wrapper(*args, offset=None, search=None, tag=None, **kwargs):
+    def wrapper(*args, log=None, offset=None, search=None, tag=None, **kwargs):
+        log_path = find_log(log)
+
         if (kwargs.get("continue_conversation") or kwargs.get("retry")) and not offset:
             offset = 1
         if kwargs.get("select_personality") and not (tag or search or offset):
@@ -87,7 +94,7 @@ def select_conversation(command):
             conversation = Conversation({})
         else:
             conversation = get_logged_conversation(
-                offset=offset, search=search, tag=tag
+                log_path, offset=offset, search=search, tag=tag
             )
         return command(
             *args,
@@ -108,10 +115,8 @@ def filter_conversations(command):
         help="Conversation log file path, or the directory to search for a log file.",
     )
     @functools.wraps(command)
-    def wrapper(*args, log_file=None, offsets=None, search=None, tag=None, **kwargs):
-        log_path = log_file or find_log()
-        if log_path.is_dir():
-            log_path = find_log(log_path)
+    def wrapper(*args, log=None, offsets=None, search=None, tag=None, **kwargs):
+        log_path = find_log(log)
 
         if kwargs.get("select_personality") and not (tag or search):
             tag = "^" + kwargs["select_personality"]
@@ -541,10 +546,10 @@ def show_usage(today):
     click.echo(f"Cost: ${total_cost:.2f}")
 
 
-def get_logged_conversation(offset, search=None, tag=None):
+def get_logged_conversation(log_path, offset, search=None, tag=None):
     offsets = [offset] if offset else []
     try:
-        return next(search_conversations(find_log(), offsets, search, tag))[1]
+        return next(search_conversations(log_path, offsets, search, tag))[1]
     except StopIteration:
         click.echo("Matching conversation not found", file=sys.stderr)
         sys.exit(1)
