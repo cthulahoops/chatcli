@@ -46,7 +46,10 @@ class Conversation:
 
         # TODO: handle multiple choices
         response_message = completion["choices"][0]["message"]
-        self.append(**response_message)
+        self.append(
+            role=response_message["role"],
+            content=response_message["content"],
+        )
         self.completion = completion
         self.usage = completion_usage(self.messages[:-1], self.model, completion)
 
