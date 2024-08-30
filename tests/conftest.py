@@ -111,38 +111,14 @@ def _fake_assistant(mocker):
 
         return agen(advanced_ai(*args, **kwargs))
 
-    # Create a mock for the chat.completions.create method
-    mock_create = mocker.Mock(side_effect=advanced_ai)
-    mock_create.return_value = advanced_ai
-
-    # Create a mock for the chat.completions object
-    mock_completions = mocker.Mock()
-    mock_completions.create = mock_create
-
-    # Create a mock for the chat object
-    mock_chat = mocker.Mock()
-    mock_chat.completions = mock_completions
-
-    # Create the main OpenAI client mock
-    mock_client = mocker.Mock(spec=OpenAI)
-    mock_client.chat = mock_chat
-
-    # Patch the OpenAI client
+    mock_client = mocker.Mock()
+    mock_client.chat.completions.create = mocker.Mock(side_effect=advanced_ai)
     mocker.patch("openai.OpenAI", return_value=mock_client)
 
-    # Create mocks for AsyncOpenAI
-    mock_acreate = mocker.AsyncMock(side_effect=async_advanced_ai)
-    mock_acreate.return_value = async_advanced_ai
-
-    mock_acompletions = mocker.Mock()
-    mock_acompletions.create = mock_acreate
-
-    mock_achat = mocker.Mock()
-    mock_achat.completions = mock_acompletions
-
-    mock_async_client = mocker.Mock(spec=AsyncOpenAI)
-    mock_async_client.chat = mock_achat
-
+    mock_async_client = mocker.Mock()
+    mock_async_client.chat.completions.create = mocker.AsyncMock(
+        side_effect=async_advanced_ai
+    )
     mocker.patch("openai.AsyncOpenAI", return_value=mock_async_client)
 
     mocker.patch(

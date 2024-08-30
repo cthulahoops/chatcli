@@ -36,17 +36,8 @@ def test_find_recent_message():
 
 
 def mock_acreate(mocker, stream):
-    mock_acreate = mocker.AsyncMock(side_effect=stream)
-
-    mock_acompletions = mocker.Mock()
-    mock_acompletions.create = mock_acreate
-
-    mock_achat = mocker.Mock()
-    mock_achat.completions = mock_acompletions
-
-    mock_async_client = mocker.Mock(spec=openai.AsyncOpenAI)
-    mock_async_client.chat = mock_achat
-
+    mock_async_client = mocker.Mock()
+    mock_async_client.chat.completions.create = mocker.AsyncMock(side_effect=stream)
     mocker.patch("openai.AsyncOpenAI", return_value=mock_async_client)
 
 
