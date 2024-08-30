@@ -66,14 +66,16 @@ def fetch(source):
 
 
 def fetch_openrouter_models():
-    import openai
+    from openai import OpenAI
 
-    for model in openai.Model.list(
-        api_base=api_base("openrouter/"),
+    client = OpenAI(
+        base_url=api_base("openrouter/"),
         api_key=api_key("openrouter/"),
-    )["data"]:
-        model["id"] = f"openrouter/{model['id']}"
-        yield model
+    )
+
+    for model in client.models.list():
+        model.id = f"openrouter/{model.id}"
+        yield model.to_dict()
 
 
 def api_base(model):

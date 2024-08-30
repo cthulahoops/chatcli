@@ -512,7 +512,7 @@ async def add_answer(log_file, conversation, *, stream=True):
         from . import plugins
 
         plugin_response = plugins.evaluate_plugins(
-            response["content"], conversation.plugins
+            response.content, conversation.plugins
         )
         if not plugin_response:
             break

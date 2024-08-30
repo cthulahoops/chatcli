@@ -11,7 +11,9 @@ from pathlib import Path
 import duckduckgo_search
 import wolframalpha
 import requests
-import openai
+from openai import OpenAI
+
+client = OpenAI()
 import prompt_toolkit
 
 
@@ -127,8 +129,8 @@ def exec_wolfram(query):
 
 
 def generate_image(prompt):
-    image_api_response = openai.Image.create(prompt=prompt, n=1, size="256x256")
-    image_url = image_api_response["data"][0]["url"]
+    image_api_response = client.images.generate(prompt=prompt, n=1, size="256x256")
+    image_url = image_api_response.data[0].url
     http_response = requests.get(image_url)
     return http_response.content
 

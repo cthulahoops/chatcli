@@ -4,6 +4,11 @@ from click.testing import CliRunner
 import chatcli_gpt.models
 import json
 from chatcli_gpt.cli import cli
+from openai import OpenAI, AsyncOpenAI
+from openai.types.chat import ChatCompletion, ChatCompletionMessage, ChatCompletionChunk
+
+from openai.types.chat.chat_completion import Choice
+from openai.types.chat.chat_completion_chunk import ChoiceDelta, Choice as ChunkChoice
 
 
 @pytest.fixture(autouse=True)
@@ -17,6 +22,51 @@ def _no_http_requests(monkeypatch):
         "urllib3.connectionpool.HTTPConnectionPool.urlopen", urlopen_mock
     )
 
+    def mock_send(*_args, **_kwargs):
+        raise RuntimeError("HTTP requests are disabled in this test.")
+
+    monkeypatch.setattr("httpx.Client.send", mock_send)
+    monkeypatch.setattr("httpx.AsyncClient.send", mock_send)
+
+
+def to_chunks(model, tokens):
+    yield ChatCompletionChunk(
+        id="chatcmpl-123",
+        object="chat.completion.chunk",
+        created=1677652288,
+        model=model,
+        choices=[
+            ChunkChoice(
+                delta=ChoiceDelta(
+                    content="",
+                    role="assistant",
+                ),
+                index=0,
+                finish_reason=None,
+            )
+        ],
+    )
+
+    for token in tokens:
+        yield ChatCompletionChunk(
+            id="chatcmpl-123",
+            object="chat.completion.chunk",
+            created=1677652288,
+            model=model,
+            choices=[
+                ChunkChoice(
+                    delta=ChoiceDelta(
+                        content=token,
+                        function_call=None,
+                        refusal=None,
+                        role="assistant",
+                    ),
+                    index=0,
+                    finish_reason="stop",
+                )
+            ],
+        )
+
 
 @pytest.fixture(autouse=True)
 def _fake_assistant(mocker):
@@ -29,33 +79,30 @@ def _fake_assistant(mocker):
         return message.upper()
 
     def streaming_ai(model, message):
-        yield {
-            "model": model,
-            "choices": [{"delta": {"role": "assistant"}, "index": 0}],
-        }
-        first = True
-        for word in ai(message, model).split(" "):
-            yield {
-                "choices": [
-                    {"delta": {"content": word if first else " " + word}, "index": 0}
-                ]
-            }
-            first = False
+        tokens = ai(message, model).split(" ")
+        tokens[1:] = [" " + token for token in tokens[1:]]
 
-    def advanced_ai(model, messages, *, stream=False, api_key=None, api_base=None):
+        yield from to_chunks(model, tokens)
+
+    def advanced_ai(model, messages, *, stream=False):
         if stream:
             return (x for x in streaming_ai(model, messages[-1]["content"]))
-        return {
-            "choices": [
-                {
-                    "message": {
-                        "role": "assistant",
-                        "content": ai(messages[-1]["content"], model),
-                    },
-                },
+        return ChatCompletion(
+            id="chatcmpl-123",
+            object="chat.completion",
+            created=1677652288,
+            model=model,
+            choices=[
+                Choice(
+                    index=0,
+                    message=ChatCompletionMessage(
+                        role="assistant", content=ai(messages[-1]["content"], model)
+                    ),
+                    finish_reason="stop",
+                )
             ],
-            "usage": {"total_tokens": 41},
-        }
+            usage={"prompt_tokens": 11, "completion_tokens": 10, "total_tokens": 41},
+        )
 
     async def async_advanced_ai(*args, **kwargs):
         async def agen(gen):
@@ -64,8 +111,40 @@ def _fake_assistant(mocker):
 
         return agen(advanced_ai(*args, **kwargs))
 
-    mocker.patch("openai.ChatCompletion.create", advanced_ai)
-    mocker.patch("openai.ChatCompletion.acreate", async_advanced_ai)
+    # Create a mock for the chat.completions.create method
+    mock_create = mocker.Mock(side_effect=advanced_ai)
+    mock_create.return_value = advanced_ai
+
+    # Create a mock for the chat.completions object
+    mock_completions = mocker.Mock()
+    mock_completions.create = mock_create
+
+    # Create a mock for the chat object
+    mock_chat = mocker.Mock()
+    mock_chat.completions = mock_completions
+
+    # Create the main OpenAI client mock
+    mock_client = mocker.Mock(spec=OpenAI)
+    mock_client.chat = mock_chat
+
+    # Patch the OpenAI client
+    mocker.patch("openai.OpenAI", return_value=mock_client)
+
+    # Create mocks for AsyncOpenAI
+    mock_acreate = mocker.AsyncMock(side_effect=async_advanced_ai)
+    mock_acreate.return_value = async_advanced_ai
+
+    mock_acompletions = mocker.Mock()
+    mock_acompletions.create = mock_acreate
+
+    mock_achat = mocker.Mock()
+    mock_achat.completions = mock_acompletions
+
+    mock_async_client = mocker.Mock(spec=AsyncOpenAI)
+    mock_async_client.chat = mock_achat
+
+    mocker.patch("openai.AsyncOpenAI", return_value=mock_async_client)
+
     mocker.patch(
         "chatcli_gpt.conversation.completion_usage",
         return_value={"prompt_tokens": 11, "completion_tokens": 10, "total_tokens": 41},

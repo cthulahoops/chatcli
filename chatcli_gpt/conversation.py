@@ -45,10 +45,10 @@ class Conversation:
             completion = synchroneous_request(self.messages, self.model, callback)
 
         # TODO: handle multiple choices
-        response_message = completion["choices"][0]["message"]
+        response_message = completion.choices[0].message
         self.append(
-            role=response_message["role"],
-            content=response_message["content"],
+            role=response_message.role,
+            content=response_message.content,
         )
         self.completion = completion
         self.usage = completion_usage(self.messages[:-1], self.model, completion)
@@ -78,7 +78,7 @@ def is_personality(tag):
 
 def completion_usage(request_messages, model, completion):
     if "usage" in completion:
-        return completion["usage"]
+        return completion.usage
 
     import tiktoken
 
@@ -92,9 +92,7 @@ def completion_usage(request_messages, model, completion):
         for x in request_messages
     )
     request_tokens = len(encoding.encode(request_text))
-    completion_tokens = len(
-        encoding.encode(completion["choices"][0]["message"]["content"])
-    )
+    completion_tokens = len(encoding.encode(completion.choices[0].message.content))
     return {
         "prompt_tokens": request_tokens,
         "completion_tokens": completion_tokens,
@@ -103,16 +101,19 @@ def completion_usage(request_messages, model, completion):
 
 
 def synchroneous_request(request_messages, model, callback):
-    import openai
+    from openai import OpenAI
 
-    completion = openai.ChatCompletion.create(
-        api_base=models.api_base(model),
+    client = OpenAI(
+        base_url=models.api_base(model),
         api_key=models.api_key(model),
+    )
+
+    completion = client.chat.completions.create(
         model=models.api_model_name(model),
         messages=request_messages,
     )
     if callback:
-        callback(completion["choices"][0]["message"]["content"])
+        callback(completion.choices[0].message.content)
     return completion
 
 
@@ -135,11 +136,14 @@ def handle_sigint():
 
 
 async def stream_request(request_messages, model, callback):
-    import openai
+    from openai import AsyncOpenAI
 
-    stream = await openai.ChatCompletion.acreate(
-        api_base=models.api_base(model),
+    aclient = AsyncOpenAI(
+        base_url=models.api_base(model),
         api_key=models.api_key(model),
+    )
+
+    stream = await aclient.chat.completions.create(
         model=models.api_model_name(model),
         messages=request_messages,
         stream=True,
@@ -148,28 +152,60 @@ async def stream_request(request_messages, model, callback):
     return await accumulate_streaming_response(stream, callback)
 
 
-async def accumulate_streaming_response(iterator, callback=None):
-    if not callback:
+async def accumulate_streaming_response(stream, callback=None):
+    from openai.types.chat import ChatCompletionMessage
+    from openai.types.completion import Completion, CompletionChoice
 
-        def callback(_):
-            pass
+    if callback is None:
+        callback = lambda _: None  # noqa: E731
 
     completion = {}
-    try:
-        async for delta in iterator:
-            completion = add_deltas(completion, delta)
 
-            content = get_choice_content(delta)
-            if content:
-                callback(content)
+    accumulated_content = ""
+
+    try:
+        async for chunk in stream:
+            if chunk.choices[0].delta.content:
+                chunk_content = chunk.choices[0].delta.content
+                accumulated_content += chunk_content
+                callback(chunk_content)
+
+            if completion.get("id") is None:
+                completion["id"] = chunk.id
+            if completion.get("created") is None:
+                completion["created"] = chunk.created
+            if completion.get("model") is None:
+                completion["model"] = chunk.model
+
     except asyncio.CancelledError:
         pass
 
-    return completion
+    message = ChatCompletionMessage(
+        text=accumulated_content,
+        content=accumulated_content,
+        role="assistant",
+        function_call=None,
+        tool_calls=None,
+    )
+
+    choice = CompletionChoice(
+        finish_reason="stop",
+        index=0,
+        text=accumulated_content,
+        message=message,
+        logprobs=None,
+    )
+
+    return Completion(
+        object="text_completion",
+        usage=None,  # Usage information is not available in streaming mode
+        choices=[choice],
+        **completion,
+    )
 
 
 def get_choice_content(completion, index=0):
-    return choices_by_index(completion["choices"]).get(index, {}).get("content")
+    return choices_by_index(completion.choices).get(index, {}).content
 
 
 def choices_by_index(choices):
@@ -179,9 +215,9 @@ def choices_by_index(choices):
 def add_deltas(completion, chunk):
     if not completion:
         completion = copy(chunk)
-        completion["choices"] = [{"message": {}} for choice in chunk["choices"]]
+        completion.choices = [{"message": {}} for choice in chunk["choices"]]
 
-    choices = completion["choices"]
+    choices = completion.choices
 
     for idx, delta in choices_by_index(chunk["choices"]).items():
         choices[idx]["message"] = append_delta(choices[idx]["message"], delta)

@@ -13,14 +13,14 @@ CHAT_LOG = os.environ.get("CHATCLI_LOGFILE", ".chatcli.log")
 LOG_FILE_VERSION = "0.4"
 
 
-def write_log(log_file, conversation, usage=None, completion=None, path=None):
+def write_log(log_file, conversation, usage=None, completion=None):
     timestamp = datetime.now(timezone.utc).isoformat()
     with log_file.open("a", buffering=1, encoding="utf-8") as fh:
         fh.write(
             json.dumps(
                 {
                     "messages": conversation.messages,
-                    "completion": completion,
+                    "completion": completion.to_dict() if completion else None,
                     "usage": usage,
                     "tags": conversation.tags or [],
                     "timestamp": timestamp,
@@ -48,7 +48,7 @@ def create_initial_log(reinit):
 
     with Path(default_log).open(encoding="utf-8") as fh:
         for line in fh:
-            write_log(new_log_file, Conversation(json.loads(line)), path=CHAT_LOG)
+            write_log(new_log_file, Conversation(json.loads(line)))
 
 
 def conversation_log(log_path):
