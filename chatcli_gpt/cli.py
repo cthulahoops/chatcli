@@ -69,7 +69,7 @@ log_file_option = click.option(
     "--log-file",
     "--log",
     type=LogFileLocation(exists=True, path_type=Path),
-    default=lambda: find_log(Path(".")),
+    default=lambda: find_log(Path()),
     help="Conversation log file path, or the directory to search for a log file.",
 )
 
@@ -361,7 +361,7 @@ def untag(tag_to_remove, log_file, conversation):
 
 @cli.command(help="Current tag")
 @select_conversation
-def show_tag(conversation, **kwargs):
+def show_tag(conversation, **_kwargs):
     if conversation.tags:
         click.echo(conversation.tags[-1])
 
@@ -382,7 +382,7 @@ def show_tag(conversation, **kwargs):
 @click.option(
     "--format-json", "--json", is_flag=True, help="Output conversation in JSON format."
 )
-def show(long, conversation, format_json, **kwargs):
+def show(long, conversation, format_json, **_kwargs):
     if format_json:
         click.echo(conversation.to_json())
         return
