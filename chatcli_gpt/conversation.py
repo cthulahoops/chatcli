@@ -149,7 +149,10 @@ async def stream_request(request_messages, model, callback):
         stream=True,
     )
 
-    return await accumulate_streaming_response(stream, callback)
+    response = await accumulate_streaming_response(stream, callback)
+    await stream.close()
+
+    return response
 
 
 async def accumulate_streaming_response(stream, callback=None):
